@@ -23,7 +23,7 @@
         .btn-dark:hover { background: #0f172a; }
         .stat { background: #fff; border: 1px solid #e2e8f0; border-radius: 14px; padding: 12px; }
         .stat p:first-child { font-size: 11px; font-weight: 600; color: #64748b; text-transform: uppercase; }
-        .stat p:last-child { font-size: 16px; font-weight: 700; color: #0f172a; margin-top: 4px; }
+        .stat p:last-child { font-size: 14px; font-weight: 700; color: #0f172a; margin-top: 4px; }
         .hist-filter-btn { padding: 6px 12px; border-radius: 999px; font-size: 12px; font-weight: 600; background: #f1f5f9; color: #475569; }
         .invoice-paper { box-shadow: 0 10px 30px rgba(15,23,42,.12); }
 
@@ -36,20 +36,22 @@
 </head>
 <body class="text-slate-800 font-sans antialiased">
 
+<div id="sidebar-overlay" onclick="closeSidebar()" class="no-print fixed inset-0 bg-black/40 z-20 hidden"></div>
+
 <div class="min-h-screen flex">
 
     <!-- Sidebar (sama dengan dashboard) -->
-    <aside class="no-print w-64 bg-slate-900 flex flex-col fixed inset-y-0 left-0 z-30">
+    <aside id="sidebar" class="no-print w-64 bg-slate-900 flex flex-col fixed inset-y-0 left-0 z-30 -translate-x-full lg:translate-x-0 transition-transform duration-200">
         <div class="px-6 py-5 border-b border-slate-800">
             <p class="text-white font-bold text-lg leading-tight">Transwisata</p>
             <p class="text-xs text-slate-500">Generator Invoice</p>
         </div>
 
         <nav class="flex-1 p-3 space-y-1 overflow-y-auto">
-            <button id="tab-btn-transaksi" onclick="switchTab('transaksi')" class="tab-btn bg-blue-50 text-blue-700 font-semibold">Transaksi</button>
-            <button id="tab-btn-perusahaan" onclick="switchTab('perusahaan')" class="tab-btn font-medium">Perusahaan</button>
-            <button id="tab-btn-pembayaran" onclick="switchTab('pembayaran')" class="tab-btn font-medium">Pembayaran</button>
-            <button id="tab-btn-riwayat" onclick="switchTab('riwayat')" class="tab-btn font-medium">
+            <button id="tab-btn-transaksi" onclick=\"switchTab('transaksi'); closeSidebar()\" class="tab-btn bg-blue-50 text-blue-700 font-semibold">Transaksi</button>
+            <button id="tab-btn-perusahaan" onclick=\"switchTab('perusahaan'); closeSidebar()\" class="tab-btn font-medium">Perusahaan</button>
+            <button id="tab-btn-pembayaran" onclick=\"switchTab('pembayaran'); closeSidebar()\" class="tab-btn font-medium">Pembayaran</button>
+            <button id="tab-btn-riwayat" onclick=\"switchTab('riwayat'); closeSidebar()\" class="tab-btn font-medium">
                 Riwayat <span id="history-count-badge" class="count">0</span>
             </button>
         </nav>
@@ -70,11 +72,14 @@
     </aside>
 
     <!-- Konten -->
-    <main class="flex-1 ml-64 p-6 lg:p-8">
-        <header class="no-print flex items-center justify-between mb-6">
-            <div>
+    <main class="flex-1 lg:ml-64 min-w-0 w-full p-4 sm:p-6 lg:p-8">
+        <header class="no-print flex items-center justify-between gap-3 mb-6">
+            <div class="flex items-center gap-3 min-w-0">
+            <button onclick="openSidebar()" class="lg:hidden btn shrink-0 text-lg leading-none px-3">&#9776;</button>
+            <div class="min-w-0">
                 <h1 class="text-2xl font-bold text-slate-900">Generator Invoice</h1>
                 <p class="text-sm text-slate-500">Buat dan cetak invoice armada &amp; paket tour</p>
+            </div>
             </div>
             <button id="mobile-toggle" onclick="toggleMobileView()" class="btn lg:hidden"><span id="mobile-toggle-text">Preview</span></button>
         </header>
@@ -86,10 +91,10 @@
 
                 <!-- Tab: Transaksi -->
                 <div id="tab-content-transaksi" class="card space-y-5">
-                    <div class="grid grid-cols-2 gap-3">
-                        <div class="col-span-2">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div class="sm:col-span-2">
                             <span class="label">No. Invoice</span>
-                            <div class="flex gap-2">
+                            <div class="flex flex-col sm:flex-row gap-2">
                                 <input id="in-inv-number" class="field font-mono" oninput="updatePreview()">
                                 <button onclick="generateAutoInvoiceNumber(true)" class="btn whitespace-nowrap">Generate Otomatis</button>
                             </div>
@@ -123,20 +128,20 @@
                     <p class="sec-title">Profil Perusahaan</p>
                     <div><span class="label">Nama Perusahaan</span><input id="in-comp-name" class="field" oninput="updatePreview()"></div>
                     <div><span class="label">Tagline</span><input id="in-comp-tagline" class="field" oninput="updatePreview()"></div>
-                    <div class="grid grid-cols-3 gap-3">
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
                         <div><span class="label">Label Alamat 1</span><input id="in-addr1-label" class="field" oninput="updatePreview()"></div>
-                        <div class="col-span-2"><span class="label">Alamat 1</span><input id="in-comp-addr1" class="field" oninput="updatePreview()"></div>
+                        <div class="sm:col-span-2"><span class="label">Alamat 1</span><input id="in-comp-addr1" class="field" oninput="updatePreview()"></div>
                         <div><span class="label">Label Alamat 2</span><input id="in-addr2-label" class="field" oninput="updatePreview()"></div>
-                        <div class="col-span-2"><span class="label">Alamat 2</span><input id="in-comp-addr2" class="field" oninput="updatePreview()"></div>
+                        <div class="sm:col-span-2"><span class="label">Alamat 2</span><input id="in-comp-addr2" class="field" oninput="updatePreview()"></div>
                     </div>
-                    <div class="grid grid-cols-3 gap-3">
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
                         <div><span class="label">WhatsApp</span><input id="in-comp-wa" class="field" oninput="updatePreview()"></div>
                         <div><span class="label">Instagram</span><input id="in-comp-ig" class="field" oninput="updatePreview()"></div>
                         <div><span class="label">Email</span><input id="in-comp-email" class="field" oninput="updatePreview()"></div>
                     </div>
                     <div>
                         <span class="label">Logo</span>
-                        <div class="flex items-center gap-3">
+                        <div class="flex flex-wrap items-center gap-3">
                             <input type="file" accept="image/*" onchange="handleLogoUpload(event)" class="text-sm">
                             <button id="btn-remove-logo" onclick="removeLogo()" class="btn hidden">Hapus Logo</button>
                         </div>
@@ -155,7 +160,7 @@
                         </div>
                         <div id="dp-input-wrapper" class="hidden mt-3 space-y-2">
                             <span class="label">Nominal DP (Rp)</span>
-                            <div class="flex gap-2">
+                            <div class="flex flex-col sm:flex-row gap-2">
                                 <input id="in-dp-amount" type="number" min="0" class="field" oninput="onDpInput()">
                                 <button onclick="setFullPayment()" class="btn whitespace-nowrap">Samakan dengan Grand Total</button>
                             </div>
@@ -169,7 +174,7 @@
 
                     <div>
                         <p class="sec-title">Stempel</p>
-                        <div class="grid grid-cols-2 gap-2">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
                             <button id="stamp-type-btn-TEXT" onclick="setLunasStampType('TEXT')" class="btn">Teks Status Saja</button>
                             <button id="stamp-type-btn-IMAGE" onclick="setLunasStampType('IMAGE')" class="btn">Stempel PNG Kustom</button>
                         </div>
@@ -190,7 +195,7 @@
 
                     <div>
                         <p class="sec-title">Nama &amp; Kota</p>
-                        <div class="grid grid-cols-2 gap-3">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             <div><span class="label">Kota</span><input id="in-sign-city" class="field" oninput="updatePreview()"></div>
                             <div><span class="label">Nama Penandatangan</span><input id="in-sign-name" class="field" oninput="updatePreview()"></div>
                         </div>
@@ -217,7 +222,7 @@
                         <button id="hist-filter-LUNAS" onclick="setHistoryFilter('LUNAS')" class="hist-filter-btn">Lunas</button>
                     </div>
                     <div id="pos-history-list" class="space-y-2 max-h-[420px] overflow-y-auto"></div>
-                    <div class="grid grid-cols-2 gap-2 pt-3 border-t border-slate-200">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-3 border-t border-slate-200">
                         <button onclick="exportAllHistoryJson()" class="btn">Backup Riwayat (.JSON)</button>
                         <label class="btn text-center cursor-pointer">
                             Restore (.JSON)
@@ -335,6 +340,17 @@
 
 <div id="toast-container" class="fixed bottom-6 right-6 space-y-2 z-50 no-print"></div>
 
+<script>
+    function openSidebar() {
+        document.getElementById('sidebar').classList.remove('-translate-x-full');
+        document.getElementById('sidebar-overlay').classList.remove('hidden');
+    }
+    function closeSidebar() {
+        if (window.innerWidth >= 1024) return;
+        document.getElementById('sidebar').classList.add('-translate-x-full');
+        document.getElementById('sidebar-overlay').classList.add('hidden');
+    }
+</script>
 <script src="app.js"></script>
 </body>
 </html>
