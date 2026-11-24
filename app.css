@@ -1,0 +1,97 @@
+/* ==========================================================
+   Generator Invoice Transwisata - Stylesheet tambahan
+   ========================================================== */
+
+/* Status pembayaran & tab (state aktif diatur lewat JS) */
+.status-btn {
+    border-color: #cbd5e1;
+    background-color: #ffffff;
+    color: #475569;
+}
+.status-btn:hover {
+    background-color: #f8fafc;
+}
+.status-btn.is-active {
+    border-color: #2563eb;
+    background-color: #eff6ff;
+    color: #1d4ed8;
+}
+
+.tab-btn {
+    cursor: pointer;
+}
+
+.hist-filter-btn {
+    cursor: pointer;
+}
+
+/* Kertas invoice: ukuran A4 pada layar */
+.invoice-paper {
+    width: 100%;
+    max-width: 210mm;
+    margin-left: auto;
+    margin-right: auto;
+    min-height: 297mm;
+}
+
+/* Scrollbar riwayat yang lebih rapi */
+#pos-history-list {
+    scrollbar-width: thin;
+    scrollbar-color: #cbd5e1 transparent;
+}
+
+/* ==========================================================
+   Aturan cetak (Print / Save PDF)
+   ========================================================== */
+@page {
+    size: A4;
+    margin: 10mm;
+}
+
+@media print {
+    html,
+    body {
+        background: #ffffff !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    .no-print {
+        display: none !important;
+    }
+
+    /* Hanya kertas invoice yang dicetak */
+    #preview-panel {
+        width: 100% !important;
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+
+    #preview-panel > div {
+        background: transparent !important;
+        padding: 0 !important;
+        border: none !important;
+        box-shadow: none !important;
+    }
+
+    .invoice-paper {
+        box-shadow: none !important;
+        border: none !important;
+        border-radius: 0 !important;
+        max-width: 100% !important;
+        min-height: auto !important;
+        padding: 0 !important;
+    }
+
+    .invoice-paper * {
+        box-shadow: none !important;
+    }
+
+    /* Cegah baris tabel terpotong di tengah halaman */
+    #prev-items-table tr,
+    #prev-footer-grid,
+    #prev-summary-wrap {
+        break-inside: avoid;
+        page-break-inside: avoid;
+    }
+}
