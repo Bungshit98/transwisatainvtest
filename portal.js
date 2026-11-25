@@ -26,7 +26,8 @@
     const FASE = { pre: 'Sebelum berangkat', post: 'Setelah pulang' };
     const STAT_CLASS = {
         'Menunggu tugas': 'bg-rose-100 text-rose-700', 'Ditugaskan': 'bg-amber-100 text-amber-700',
-        'Berjalan': 'bg-blue-100 text-blue-700', 'Selesai': 'bg-emerald-100 text-emerald-700'
+        'Berjalan': 'bg-blue-100 text-blue-700', 'Selesai jalan': 'bg-violet-100 text-violet-700',
+        'Selesai': 'bg-emerald-100 text-emerald-700'
     };
 
     const $ = (id) => document.getElementById(id);
@@ -159,7 +160,8 @@
         const done = b.progres.filter((p) => p.done).length;
         if (done === 0) return 'Ditugaskan';
         if (done < b.progres.length) return 'Berjalan';
-        return 'Selesai';
+        if (b.cek && b.cek.post && b.cek.post.diterimaAt) return 'Selesai';
+        return 'Selesai jalan';
     }
     function cekRingkas(b, fase) {
         const c = (b.cek && b.cek[fase]) || {};
@@ -287,13 +289,25 @@
                     <a href="https://wa.me/${WA_KANTOR}?text=${encodeURIComponent('Halo, saya ' + session.nama + ' (sopir). Ada kendala di jalan.')}" target="_blank" class="btn btn-primary text-center">WhatsApp Kantor</a>
                 </div>
             </div>`;
-        if (!list.length) { $('jadwal-list').innerHTML = bantuan + '<div class="text-center text-slate-400 py-10">Belum ada tugas untuk Anda.</div>'; return; }
+        const riwayat = getBooking()
+            .filter((b) => b.sopir === session.nama && bookingStatus(b) === 'Selesai')
+            .sort((a, c) => String(c.tanggal).localeCompare(String(a.tanggal)));
+        const riwayatHtml = riwayat.length ? `
+            <p class="sec-title mt-6">Riwayat Kerja Saya</p>
+            ${riwayat.map((b) => `
+                <div class="bg-white rounded-2xl border border-slate-200 p-4 mb-3">
+                    <p class="font-semibold text-slate-900">${fmtTgl(b.tanggal)} · ${esc(b.customer)}</p>
+                    <p class="text-sm text-slate-500">Unit: ${esc(b.mobil)} · ${b.progres.filter((p) => p.done).length}/${b.progres.length} tujuan selesai</p>
+                    <div class="text-sm text-slate-700 mt-2">${b.tujuan.map((t, i) => `<p>${i + 1}. ${esc(t)} <span class="text-xs text-slate-400">${esc((b.progres[i] || {}).jam || '')}</span></p>`).join('')}</div>
+                </div>`).join('')}` : '';
+        if (!list.length) { $('jadwal-list').innerHTML = bantuan + '<div class="text-center text-slate-400 py-10">Belum ada tugas untuk Anda.</div>' + riwayatHtml; return; }
         $('jadwal-list').innerHTML = bantuan + list.map((b) => `
             <div class="bg-white rounded-2xl border border-slate-200 p-4 mb-4">
                 <div class="flex items-start justify-between gap-3">
                     <div class="min-w-0">
                         <p class="font-semibold text-slate-900">${fmtTgl(b.tanggal)} · ${esc(b.customer)}</p>
                         <p class="text-sm text-slate-500">Unit: ${esc(b.mobil)} · Cek sebelum berangkat: ${cekRingkas(b, 'pre')}</p>
+                        ${bookingStatus(b) === 'Selesai jalan' ? '<p class="text-sm text-violet-700 mt-1">Semua tujuan sudah dicentang. Menunggu mandor cek unit di pool.</p>' : ''}
                     </div>
                     ${badge(bookingStatus(b))}
                 </div>
@@ -308,7 +322,7 @@
                         </label>`;
                     }).join('')}
                 </div>
-            </div>`).join('');
+            </div>`).join('') + riwayatHtml;
     }
 
     function handleAssign(id) {
@@ -331,6 +345,7 @@
         const c = {};
         document.querySelectorAll(`input[data-cek-id="${id}"][data-cek-fase="${fase}"]`).forEach((cb) => { c[cb.dataset.cekItem] = cb.checked; });
         c.catatan = ($('cat-' + id + '-' + fase) || {}).value || '';
+        if (fase === 'post') c.diterimaAt = new Date().toISOString();
         b.cek = b.cek || { pre: {}, post: {} };
         b.cek[fase] = c;
         saveBooking(list);
@@ -429,9 +444,9 @@
         items.forEach((p) => { acc[p[key]] = (acc[p[key]] || 0) + Number(p.nominal || 0); });
         return Object.keys(acc).map((k) => ({ nama: k, total: acc[k] })).sort((a, b) => b.total - a.total);
     }
-    function tableCard(title, rows) {
+    function tableCard(title, rows, tipe) {
         const body = rows.length
-            ? rows.map((r) => `<tr class="border-t border-slate-100"><td class="py-2">${esc(r.nama)}</td><td class="py-2 text-right font-semibold">${rp(r.total)}</td></tr>`).join('')
+            ? rows.map((r) => `<tr class="border-t border-slate-100 ${tipe ? 'cursor-pointer hover:bg-slate-50' : ''}" ${tipe ? `data-dtipe="${tipe}" data-dnama="${esc(r.nama)}"` : ''}><td class="py-2">${esc(r.nama)}${tipe ? ' <span class="text-xs text-blue-600">detail</span>' : ''}</td><td class="py-2 text-right font-semibold">${rp(r.total)}</td></tr>`).join('')
             : '<tr><td class="py-4 text-center text-slate-400">Tidak ada data</td></tr>';
         return `<div class="card"><p class="sec-title">${title}</p><table class="w-full text-sm">${body}</table></div>`;
     }
@@ -445,8 +460,48 @@
                 <p class="text-2xl font-bold text-slate-900 mt-1">${rp(total)}</p>
                 <p class="text-sm text-slate-500">${items.length} entri</p></div>
             ${tableCard('Per kategori', groupSum(items, 'kategori'))}
-            ${tableCard('Per mobil', groupSum(items, 'mobil'))}
-            ${tableCard('Per sopir', groupSum(items, 'sopir'))}`;
+            ${tableCard('Per mobil', groupSum(items, 'mobil'), 'mobil')}
+            ${tableCard('Per sopir', groupSum(items, 'sopir'), 'sopir')}`;
+        $('rekap-detail').innerHTML = '';
+    }
+
+    function showRekapDetail(tipe, nama) {
+        const bulan = $('rekap-bulan').value || thisMonth();
+        const items = load(KEY.pengeluaran, [])
+            .filter((p) => String(p.tanggal).indexOf(bulan) === 0 && p[tipe] === nama)
+            .sort((a, c) => String(a.tanggal).localeCompare(String(c.tanggal)));
+        const total = items.reduce((s, p) => s + Number(p.nominal || 0), 0);
+        const other = tipe === 'mobil' ? 'Sopir' : 'Mobil';
+        const otherKey = tipe === 'mobil' ? 'sopir' : 'mobil';
+        const kategori = [...new Set([...KATEGORI, ...items.map((p) => p.kategori)])]
+            .filter((k) => items.some((p) => p.kategori === k));
+        const blok = kategori.map((k) => {
+            const rows = items.filter((p) => p.kategori === k);
+            const sub = rows.reduce((s, p) => s + Number(p.nominal || 0), 0);
+            return `
+                <div class="mb-4">
+                    <div class="flex justify-between font-semibold text-slate-800 border-b border-slate-200 pb-1">
+                        <span>${esc(k)}</span><span>${rp(sub)}</span>
+                    </div>
+                    <table class="w-full text-sm">
+                        ${rows.map((p) => `<tr class="border-t border-slate-100">
+                            <td class="py-1.5 w-28 text-slate-500">${fmtTgl(p.tanggal)}</td>
+                            <td class="py-1.5">${esc(p.keterangan || '-')}<span class="text-xs text-slate-400"> · ${esc(p[otherKey])}</span></td>
+                            <td class="py-1.5 text-right">${rp(p.nominal)}</td>
+                        </tr>`).join('')}
+                    </table>
+                </div>`;
+        }).join('');
+        $('rekap-detail').innerHTML = `
+            <div class="card">
+                <div class="flex items-center justify-between mb-1">
+                    <p class="sec-title mb-0">Detail ${tipe === 'mobil' ? 'Mobil' : 'Sopir'}: ${esc(nama)}</p>
+                    <button data-detail-close="1" class="text-xs text-slate-500 hover:underline">Tutup</button>
+                </div>
+                <p class="text-sm text-slate-500 mb-4">${other} terkait disertakan di setiap baris. Total ${rp(total)} · ${items.length} entri</p>
+                ${blok || '<p class="text-slate-400 text-sm">Tidak ada pengeluaran di bulan ini.</p>'}
+            </div>`;
+        $('rekap-detail').scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 
     /* ---------- Armada ---------- */
@@ -682,6 +737,8 @@
     document.addEventListener('click', (e) => {
         const t = (sel) => e.target.closest(sel);
         let el;
+        if ((el = t('[data-dtipe]'))) return showRekapDetail(el.dataset.dtipe, el.dataset.dnama);
+        if (t('[data-detail-close]')) { $('rekap-detail').innerHTML = ''; return; }
         if ((el = t('[data-bdel]'))) { if (!confirm('Hapus booking ini?')) return; saveBooking(getBooking().filter((x) => x.id !== el.dataset.bdel)); return renderJadwal(); }
         if ((el = t('[data-assign]'))) return handleAssign(el.dataset.assign);
         if ((el = t('[data-cek-save]'))) return handleCekSave(el.dataset.cekSave, el.dataset.cekFase);
