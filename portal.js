@@ -11,7 +11,7 @@
     const SOPIR_STATUS = ['Aktif', 'Cuti', 'Nonaktif'];
     const KEY = {
         master: 'tw_master', auth: 'tw_auth', jadwal: 'tw_jadwal',
-        pengeluaran: 'tw_pengeluaran', history: 'tw_history', session: 'tw_session'
+        pengeluaran: 'tw_pengeluaran', history: 'tw_history', session: 'tw_session', booking: 'tw_booking'
     };
     const VIEWS = {
         sopir: ['pengeluaran', 'jadwal', 'pin'],
@@ -130,54 +130,211 @@
         document.querySelectorAll('.nav-btn').forEach((b) => {
             b.style.display = allowed.indexOf(b.dataset.nav) === -1 ? 'none' : '';
         });
+        const lbl = { admin: 'Booking', mandor: 'Penugasan & Cek', sopir: 'Jadwal Saya' }[session.role];
+        const jb = document.querySelector('.nav-btn[data-nav="jadwal"]');
+        if (jb) jb.textContent = lbl;
         $('sidebar-company').textContent = session.role === 'sopir' ? 'Sopir: ' + session.nama : 'Login: ' + session.role;
         showView(allowed[0]);
     }
 
-    /* ---------- Jadwal ---------- */
+    /* ---------- Booking & Jadwal ---------- */
+    const CEK_ITEMS = ['BBM cukup', 'Ban & angin', 'Lampu & wiper', 'Kebersihan', 'Dokumen (STNK, KIR, SIM)', 'Kondisi driver siap'];
+    const FASE = { pre: 'Sebelum berangkat', post: 'Setelah pulang' };
+    const STAT_CLASS = {
+        'Menunggu tugas': 'bg-rose-100 text-rose-700', 'Ditugaskan': 'bg-amber-100 text-amber-700',
+        'Berjalan': 'bg-blue-100 text-blue-700', 'Selesai': 'bg-emerald-100 text-emerald-700'
+    };
+    const getBooking = () => load(KEY.booking, []);
+    const saveBooking = (list) => save(KEY.booking, list);
+    const badge = (s) => `<span class="text-[11px] font-semibold px-2 py-0.5 rounded-full ${STAT_CLASS[s]}">${s}</span>`;
+
+    function bookingStatus(b) {
+        if (!b.mobil || !b.sopir) return 'Menunggu tugas';
+        const done = b.progres.filter((p) => p.done).length;
+        if (done === 0) return 'Ditugaskan';
+        if (done < b.progres.length) return 'Berjalan';
+        return 'Selesai';
+    }
+    function cekRingkas(b, fase) {
+        const c = (b.cek && b.cek[fase]) || {};
+        const n = CEK_ITEMS.filter((i) => c[i]).length;
+        return n === CEK_ITEMS.length
+            ? '<span class="text-emerald-700 font-semibold">Lengkap</span>'
+            : `<span class="text-slate-500">${n}/${CEK_ITEMS.length} item</span>`;
+    }
+    function nowJam() { return new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }); }
+
     function renderJadwal() {
         const role = session.role;
-        const m = getMaster();
-        let list = load(KEY.jadwal, []);
-        if (role === 'sopir') list = list.filter((j) => j.sopir === session.nama);
-        list = list.slice().sort((a, b) => String(b.tanggal).localeCompare(String(a.tanggal)));
-
-        $('jadwal-form').innerHTML = role === 'sopir' ? '' : `
-            <div class="card mb-4 space-y-3">
-                <p class="sec-title">Tambah Jadwal</p>
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div><span class="label">Tanggal</span><input type="date" id="j-tgl" class="field" value="${today()}"></div>
-                    <div><span class="label">Mobil</span><select id="j-mobil" class="field">${opts(platMobil(m))}</select></div>
-                    <div><span class="label">Sopir</span><select id="j-sopir" class="field">${opts(namaSopir(m))}</select></div>
-                    <div><span class="label">Rute</span><input id="j-rute" class="field" placeholder="Contoh: Jogja - Bromo"></div>
-                </div>
-                <button onclick="portalSaveJadwal()" class="btn btn-primary">Simpan Jadwal</button>
-            </div>`;
-
-        $('jadwal-list').innerHTML = list.length
-            ? '<div class="bg-white rounded-2xl border border-slate-200 divide-y divide-slate-100">' + list.map((j) => `
-                <div class="p-4 flex items-start justify-between gap-3">
-                    <div class="min-w-0">
-                        <p class="font-semibold text-slate-900">${fmtTgl(j.tanggal)} · ${esc(j.mobil)}</p>
-                        <p class="text-sm text-slate-500">Sopir: ${esc(j.sopir)}${j.rute ? ' · ' + esc(j.rute) : ''}</p>
-                    </div>
-                    ${role !== 'sopir' ? `<button data-jdel="${esc(j.id)}" class="text-xs text-rose-600 hover:underline shrink-0">Hapus</button>` : ''}
-                </div>`).join('') + '</div>'
-            : '<div class="text-center text-slate-400 py-10">Belum ada jadwal.</div>';
+        if (role === 'admin') return renderBookingAdmin();
+        if (role === 'mandor') return renderBookingMandor();
+        return renderJadwalSopir();
     }
 
-    window.portalSaveJadwal = function () {
+    function renderBookingAdmin() {
+        const list = getBooking().slice().sort((a, c) => String(c.tanggal).localeCompare(String(a.tanggal)));
+        $('jadwal-form').innerHTML = `
+            <div class="card mb-4 space-y-3">
+                <p class="sec-title">Buat Booking Baru</p>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div><span class="label">Tanggal</span><input type="date" id="b-tgl" class="field" value="${today()}"></div>
+                    <div><span class="label">Nama Customer</span><input id="b-cust" class="field"></div>
+                    <div><span class="label">No. HP Customer</span><input id="b-hp" class="field" inputmode="tel"></div>
+                    <div><span class="label">No. Invoice (opsional)</span><input id="b-inv" class="field" placeholder="INV/TW/..."></div>
+                    <div class="sm:col-span-2"><span class="label">Tujuan (satu baris, satu tujuan)</span>
+                        <textarea id="b-tuj" rows="4" class="field" placeholder="Malioboro&#10;Candi Prambanan&#10;Tebing Breksi"></textarea></div>
+                </div>
+                <button onclick="portalSaveBooking()" class="btn btn-primary">Simpan Booking</button>
+            </div>`;
+        $('jadwal-list').innerHTML = list.length ? list.map((b) => {
+            const done = b.progres.filter((p) => p.done).length;
+            return `
+            <div class="bg-white rounded-2xl border border-slate-200 p-4 mb-3">
+                <div class="flex items-start justify-between gap-3">
+                    <div class="min-w-0">
+                        <p class="font-semibold text-slate-900">${fmtTgl(b.tanggal)} · ${esc(b.customer)}</p>
+                        <p class="text-sm text-slate-500">${b.mobil ? esc(b.mobil) + ' · ' + esc(b.sopir) : 'Belum ditugaskan mandor'}</p>
+                    </div>
+                    ${badge(bookingStatus(b))}
+                </div>
+                <p class="text-sm mt-2">Tujuan: ${b.tujuan.map(esc).join(' → ')}</p>
+                <p class="text-sm mt-1">Progres: ${done}/${b.progres.length} tujuan · Cek sebelum: ${cekRingkas(b, 'pre')} · Cek sesudah: ${cekRingkas(b, 'post')}</p>
+                <p class="text-xs text-slate-500 mt-1">HP: ${esc(b.hp || '-')} · Invoice: ${esc(b.invoice || '-')}</p>
+                <button data-bdel="${esc(b.id)}" class="text-xs text-rose-600 hover:underline mt-2">Hapus booking</button>
+            </div>`;
+        }).join('') : '<div class="text-center text-slate-400 py-10">Belum ada booking.</div>';
+    }
+
+    window.portalSaveBooking = function () {
+        const tujuan = $('b-tuj').value.split('\n').map((s) => s.trim()).filter(Boolean);
         const d = {
-            id: uid(), tanggal: $('j-tgl').value, mobil: $('j-mobil').value,
-            sopir: $('j-sopir').value, rute: $('j-rute').value.trim(), status: 'Terjadwal'
+            id: uid(), tanggal: $('b-tgl').value, customer: $('b-cust').value.trim(),
+            hp: $('b-hp').value.trim(), invoice: $('b-inv').value.trim(), tujuan,
+            mobil: '', sopir: '', progres: tujuan.map(() => ({ done: false, jam: '' })),
+            cek: { pre: {}, post: {} }, dibuat: new Date().toISOString()
         };
-        if (!d.tanggal || !d.mobil || !d.sopir) return toast('Tanggal, mobil, dan sopir wajib diisi', 'err');
-        const list = load(KEY.jadwal, []);
+        if (!d.tanggal || !d.customer || !tujuan.length) return toast('Tanggal, customer, dan minimal satu tujuan wajib diisi', 'err');
+        const list = getBooking();
         list.push(d);
-        save(KEY.jadwal, list);
-        toast('Jadwal tersimpan');
+        saveBooking(list);
+        toast('Booking tersimpan');
         renderJadwal();
     };
+
+    function renderBookingMandor() {
+        const m = getMaster();
+        $('jadwal-form').innerHTML = '';
+        const list = getBooking()
+            .filter((b) => bookingStatus(b) !== 'Selesai')
+            .sort((a, c) => String(a.tanggal).localeCompare(String(c.tanggal)));
+        if (!list.length) { $('jadwal-list').innerHTML = '<div class="text-center text-slate-400 py-10">Tidak ada booking yang perlu disiapkan.</div>'; return; }
+
+        const cekForm = (b, fase) => {
+            const c = (b.cek && b.cek[fase]) || {};
+            return `
+            <div class="mt-4 border-t border-slate-100 pt-3">
+                <p class="font-semibold text-sm text-slate-800 mb-2">Cek unit: ${FASE[fase]}</p>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    ${CEK_ITEMS.map((item) => `
+                        <label class="flex items-center gap-2 m-0 text-sm font-normal normal-case tracking-normal text-slate-700">
+                            <input type="checkbox" data-cek-id="${esc(b.id)}" data-cek-fase="${fase}" data-cek-item="${esc(item)}" ${c[item] ? 'checked' : ''} class="w-4 h-4">
+                            ${esc(item)}
+                        </label>`).join('')}
+                </div>
+                <textarea id="cat-${esc(b.id)}-${fase}" rows="2" class="field mt-2" placeholder="Catatan kondisi unit (opsional)">${esc(c.catatan || '')}</textarea>
+                <button data-cek-save="${esc(b.id)}" data-cek-fase="${fase}" class="btn mt-2 text-sm">Simpan ${FASE[fase]}</button>
+            </div>`;
+        };
+
+        $('jadwal-list').innerHTML = list.map((b) => {
+            const assigned = !!(b.mobil && b.sopir);
+            return `
+            <div class="bg-white rounded-2xl border border-slate-200 p-4 mb-4">
+                <div class="flex items-start justify-between gap-3">
+                    <div class="min-w-0">
+                        <p class="font-semibold text-slate-900">${fmtTgl(b.tanggal)} · ${esc(b.customer)}</p>
+                        <p class="text-sm text-slate-500">${assigned ? esc(b.mobil) + ' · ' + esc(b.sopir) : 'Belum ditugaskan'}</p>
+                    </div>
+                    ${badge(bookingStatus(b))}
+                </div>
+                <p class="text-sm mt-2">Tujuan: ${b.tujuan.map(esc).join(' → ')}</p>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-3">
+                    <select id="as-mobil-${esc(b.id)}" class="field">${opts(platMobil(m), b.mobil)}</select>
+                    <select id="as-sopir-${esc(b.id)}" class="field">${opts(namaSopir(m), b.sopir)}</select>
+                    <button data-assign="${esc(b.id)}" class="btn btn-primary sm:col-span-2">${assigned ? 'Ubah Penugasan' : 'Tugaskan'}</button>
+                </div>
+                ${assigned ? cekForm(b, 'pre') + cekForm(b, 'post') : ''}
+            </div>`;
+        }).join('');
+    }
+
+    function renderJadwalSopir() {
+        const list = getBooking()
+            .filter((b) => b.sopir === session.nama && bookingStatus(b) !== 'Selesai')
+            .sort((a, c) => String(a.tanggal).localeCompare(String(c.tanggal)));
+        if (!list.length) { $('jadwal-list').innerHTML = '<div class="text-center text-slate-400 py-10">Belum ada tugas untuk Anda.</div>'; return; }
+        $('jadwal-list').innerHTML = list.map((b) => `
+            <div class="bg-white rounded-2xl border border-slate-200 p-4 mb-4">
+                <div class="flex items-start justify-between gap-3">
+                    <div class="min-w-0">
+                        <p class="font-semibold text-slate-900">${fmtTgl(b.tanggal)} · ${esc(b.customer)}</p>
+                        <p class="text-sm text-slate-500">Unit: ${esc(b.mobil)} · Cek sebelum berangkat: ${cekRingkas(b, 'pre')}</p>
+                    </div>
+                    ${badge(bookingStatus(b))}
+                </div>
+                <div class="mt-3">
+                    ${b.tujuan.map((t, i) => {
+                        const p = b.progres[i] || { done: false, jam: '' };
+                        return `
+                        <label class="flex items-center gap-3 py-2 border-t border-slate-100 m-0 normal-case tracking-normal font-normal text-base text-slate-800">
+                            <input type="checkbox" data-tuj-id="${esc(b.id)}" data-tuj-idx="${i}" ${p.done ? 'checked' : ''} class="w-5 h-5 shrink-0">
+                            <span class="flex-1 ${p.done ? 'line-through text-slate-400' : ''}">${i + 1}. ${esc(t)}</span>
+                            <span class="text-xs text-slate-500 shrink-0">${esc(p.jam)}</span>
+                        </label>`;
+                    }).join('')}
+                </div>
+            </div>`).join('');
+    }
+
+    /* ---------- Penugasan, cek unit, dan centang tujuan ---------- */
+    function handleAssign(id) {
+        const mobil = $('as-mobil-' + id).value;
+        const sopir = $('as-sopir-' + id).value;
+        if (!mobil || !sopir) return toast('Pilih unit dan sopir dulu', 'err');
+        const list = getBooking();
+        const b = list.find((x) => x.id === id);
+        if (!b) return;
+        b.mobil = mobil;
+        b.sopir = sopir;
+        saveBooking(list);
+        toast('Penugasan disimpan');
+        renderJadwal();
+    }
+
+    function handleCekSave(id, fase) {
+        const list = getBooking();
+        const b = list.find((x) => x.id === id);
+        if (!b) return;
+        const c = {};
+        document.querySelectorAll(`input[data-cek-id="${id}"][data-cek-fase="${fase}"]`).forEach((cb) => {
+            c[cb.dataset.cekItem] = cb.checked;
+        });
+        c.catatan = ($('cat-' + id + '-' + fase) || {}).value || '';
+        b.cek = b.cek || { pre: {}, post: {} };
+        b.cek[fase] = c;
+        saveBooking(list);
+        toast('Cek ' + FASE[fase].toLowerCase() + ' tersimpan');
+        renderJadwal();
+    }
+
+    function handleTujuan(id, idx, checked) {
+        const list = getBooking();
+        const b = list.find((x) => x.id === id);
+        if (!b) return;
+        b.progres[idx] = { done: checked, jam: checked ? nowJam() : '' };
+        saveBooking(list);
+        renderJadwal();
+    }
 
     /* ---------- Pengeluaran ---------- */
     function renderPengeluaran() {
@@ -450,12 +607,16 @@
 
     /* ---------- Aksi tabel (delegasi) ---------- */
     document.addEventListener('click', (e) => {
-        const j = e.target.closest('[data-jdel]');
-        if (j) {
-            if (!confirm('Hapus jadwal ini?')) return;
-            save(KEY.jadwal, load(KEY.jadwal, []).filter((x) => x.id !== j.dataset.jdel));
+        const bd = e.target.closest('[data-bdel]');
+        if (bd) {
+            if (!confirm('Hapus booking ini?')) return;
+            saveBooking(getBooking().filter((x) => x.id !== bd.dataset.bdel));
             return renderJadwal();
         }
+        const asg = e.target.closest('[data-assign]');
+        if (asg) return handleAssign(asg.dataset.assign);
+        const cs = e.target.closest('[data-cek-save]');
+        if (cs) return handleCekSave(cs.dataset.cekSave, cs.dataset.cekFase);
         const p = e.target.closest('[data-pdel]');
         if (p) {
             if (!confirm('Hapus pengeluaran ini?')) return;
@@ -487,6 +648,8 @@
     });
 
     document.addEventListener('change', (e) => {
+        const tj = e.target.closest('[data-tuj-id]');
+        if (tj) return handleTujuan(tj.dataset.tujId, Number(tj.dataset.tujIdx), tj.checked);
         const as = e.target.closest('[data-astatus]');
         if (as) { const m = getMaster(); m.mobil[Number(as.dataset.astatus)].status = as.value; saveMaster(m); return; }
         const ss = e.target.closest('[data-sstatus]');
