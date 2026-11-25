@@ -179,38 +179,63 @@
         return renderJadwalSopir();
     }
 
-    function renderBookingAdmin() {
-        const list = getBooking().filter((b) => bookingStatus(b) !== 'Selesai').sort((a, c) => String(c.tanggal).localeCompare(String(a.tanggal)));
-        $('jadwal-form').innerHTML = `
-            <div class="card mb-4 space-y-3">
-                <p class="sec-title">Buat Booking Baru</p>
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div><span class="label">Tanggal</span><input type="date" id="b-tgl" class="field" value="${today()}"></div>
-                    <div><span class="label">Nama Customer</span><input id="b-cust" class="field"></div>
-                    <div><span class="label">No. HP Customer</span><input id="b-hp" class="field" inputmode="tel"></div>
-                    <div><span class="label">No. Invoice (opsional)</span><input id="b-inv" class="field" placeholder="INV/TW/..."></div>
-                    <div class="sm:col-span-2"><span class="label">Tujuan (satu baris, satu tujuan)</span>
-                        <textarea id="b-tuj" rows="4" class="field" placeholder="Malioboro&#10;Candi Prambanan&#10;Tebing Breksi"></textarea></div>
-                </div>
-                <button onclick="portalSaveBooking()" class="btn btn-primary">Simpan Booking</button>
+    const openBooking = new Set();
+
+    function bookingDetail(b) {
+        const cekRow = (fase) => {
+            const c = (b.cek && b.cek[fase]) || {};
+            return `<div>
+                <p class="font-semibold text-slate-800">Cek ${FASE[fase]}</p>
+                <p class="text-xs text-slate-600">${CEK_ITEMS.map((i) => (c[i] ? '✓ ' : '✗ ') + esc(i)).join(' · ')}</p>
+                ${c.catatan ? `<p class="text-xs text-slate-500">Catatan: ${esc(c.catatan)}</p>` : ''}
             </div>`;
+        };
+        return `
+            <div class="mt-3 border-t border-slate-100 pt-3 space-y-3 text-sm">
+                <p><span class="text-slate-500">HP:</span> ${esc(b.hp || '-')} · <span class="text-slate-500">Invoice:</span> ${esc(b.invoice || '-')}</p>
+                <div>
+                    <p class="font-semibold text-slate-800 mb-1">Tujuan</p>
+                    ${b.tujuan.map((t, i) => {
+                        const p = b.progres[i] || {};
+                        return `<p>${i + 1}. ${esc(t)} <span class="text-xs text-slate-500">${p.done ? '· selesai ' + esc(p.jam) : '· belum'}</span></p>`;
+                    }).join('')}
+                </div>
+                ${cekRow('pre')}
+                ${cekRow('post')}
+                <button data-bdel="${esc(b.id)}" class="text-xs text-rose-600 hover:underline">Hapus booking</button>
+            </div>`;
+    }
+
+    function renderBookingAdmin() {
+        if (!$('jadwal-cari')) {
+            $('jadwal-form').innerHTML = `
+                <div class="card mb-4">
+                    <span class="label">Cari booking</span>
+                    <input id="jadwal-cari" class="field" placeholder="Customer, invoice, unit, sopir, tujuan, atau tanggal (YYYY-MM-DD)">
+                </div>`;
+        }
+        const cari = ($('jadwal-cari').value || '').toLowerCase().trim();
+        const list = getBooking()
+            .filter((b) => bookingStatus(b) !== 'Selesai')
+            .filter((b) => !cari || [b.customer, b.hp, b.invoice, b.mobil, b.sopir, b.tanggal, b.tujuan.join(' ')].join(' ').toLowerCase().indexOf(cari) !== -1)
+            .sort((a, c) => String(c.tanggal).localeCompare(String(a.tanggal)));
         $('jadwal-list').innerHTML = list.length ? list.map((b) => {
             const done = b.progres.filter((p) => p.done).length;
+            const open = openBooking.has(b.id);
             return `
             <div class="bg-white rounded-2xl border border-slate-200 p-4 mb-3">
                 <div class="flex items-start justify-between gap-3">
                     <div class="min-w-0">
                         <p class="font-semibold text-slate-900">${fmtTgl(b.tanggal)} · ${esc(b.customer)}</p>
-                        <p class="text-sm text-slate-500">${b.mobil ? esc(b.mobil) + ' · ' + esc(b.sopir) : 'Belum ditugaskan mandor'}</p>
+                        <p class="text-sm text-slate-500">${b.mobil ? esc(b.mobil) + ' · ' + esc(b.sopir) : 'Belum ditugaskan mandor'} · Invoice ${esc(b.invoice || '-')}</p>
                     </div>
                     ${badge(bookingStatus(b))}
                 </div>
-                <p class="text-sm mt-2">Tujuan: ${b.tujuan.map(esc).join(' → ')}</p>
-                <p class="text-sm mt-1">Progres: ${done}/${b.progres.length} tujuan · Cek sebelum: ${cekRingkas(b, 'pre')} · Cek sesudah: ${cekRingkas(b, 'post')}</p>
-                <p class="text-xs text-slate-500 mt-1">HP: ${esc(b.hp || '-')} · Invoice: ${esc(b.invoice || '-')}</p>
-                <button data-bdel="${esc(b.id)}" class="text-xs text-rose-600 hover:underline mt-2">Hapus booking</button>
+                <p class="text-sm mt-2">Progres: ${done}/${b.progres.length} tujuan · Cek sebelum: ${cekRingkas(b, 'pre')} · Cek sesudah: ${cekRingkas(b, 'post')}</p>
+                <button data-toggle-detail="${esc(b.id)}" class="text-xs text-blue-700 hover:underline mt-2">${open ? 'Tutup detail' : 'Lihat detail'}</button>
+                ${open ? bookingDetail(b) : ''}
             </div>`;
-        }).join('') : '<div class="text-center text-slate-400 py-10">Belum ada booking.</div>';
+        }).join('') : '<div class="text-center text-slate-400 py-10">Tidak ada booking yang cocok.</div>';
     }
 
     window.portalSaveBooking = function () {
@@ -277,6 +302,7 @@
     }
 
     function renderJadwalSopir() {
+        $('jadwal-form').innerHTML = '';
         const list = getBooking()
             .filter((b) => b.sopir === session.nama && bookingStatus(b) !== 'Selesai')
             .sort((a, c) => String(a.tanggal).localeCompare(String(c.tanggal)));
@@ -739,6 +765,11 @@
         let el;
         if ((el = t('[data-dtipe]'))) return showRekapDetail(el.dataset.dtipe, el.dataset.dnama);
         if (t('[data-detail-close]')) { $('rekap-detail').innerHTML = ''; return; }
+        if ((el = t('[data-toggle-detail]'))) {
+            const id = el.dataset.toggleDetail;
+            if (openBooking.has(id)) openBooking.delete(id); else openBooking.add(id);
+            return renderJadwal();
+        }
         if ((el = t('[data-bdel]'))) { if (!confirm('Hapus booking ini?')) return; saveBooking(getBooking().filter((x) => x.id !== el.dataset.bdel)); return renderJadwal(); }
         if ((el = t('[data-assign]'))) return handleAssign(el.dataset.assign);
         if ((el = t('[data-cek-save]'))) return handleCekSave(el.dataset.cekSave, el.dataset.cekFase);
@@ -779,6 +810,10 @@
             saveAkun(getAkun().filter((x) => x.id !== el.dataset.adelAkun));
             return renderAkun();
         }
+    });
+
+    document.addEventListener('input', (e) => {
+        if (e.target && e.target.id === 'jadwal-cari') renderBookingAdmin();
     });
 
     document.addEventListener('change', (e) => {
