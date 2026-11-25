@@ -182,6 +182,8 @@
     const openBooking = new Set();
     let editArmada = -1;
     let editSupir = -1;
+    let formArmadaOpen = false;
+    let formSupirOpen = false;
 
     function bookingDetail(b) {
         const cekRow = (fase) => {
@@ -531,11 +533,10 @@
     }
 
     /* ---------- Armada ---------- */
-    function renderArmada() {
-        const m = getMaster();
-        $('armada-form').innerHTML = `
+    function armadaAddForm() {
+        return `
             <div class="card mb-4 space-y-3">
-                <p class="sec-title">Tambah Armada</p>
+                <p class="sec-title">Tambah Unit</p>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div><span class="label">Plat Nomor</span><input id="a-plat" class="field" placeholder="Contoh: AB 1234 CD"></div>
                     <div><span class="label">Tipe</span><input id="a-tipe" class="field" placeholder="Bus / Hiace / Elf"></div>
@@ -544,46 +545,73 @@
                     <div><span class="label">STNK berlaku sampai</span><input type="date" id="a-stnk" class="field"></div>
                     <div><span class="label">KIR berlaku sampai</span><input type="date" id="a-kir" class="field"></div>
                 </div>
-                <button onclick="portalSaveArmada()" class="btn btn-primary">Simpan Armada</button>
+                <button onclick="portalSaveArmada()" class="btn btn-primary">Simpan Unit</button>
             </div>`;
-        $('armada-list').innerHTML = m.mobil.length
-            ? '<div class="bg-white rounded-2xl border border-slate-200 divide-y divide-slate-100">' + m.mobil.map((x, i) => {
-                if (editArmada === i) return `
-                <div class="p-4 space-y-3 bg-slate-50">
-                    <p class="font-semibold text-slate-900">Edit ${esc(x.plat)} <span class="text-xs text-slate-400">(plat tidak bisa diubah)</span></p>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <div><span class="label">Tipe</span><input id="ea-tipe-${i}" class="field" value="${esc(x.tipe)}"></div>
-                        <div><span class="label">Jumlah Seat</span><input id="ea-seat-${i}" type="number" min="0" class="field" value="${esc(x.seat)}"></div>
-                        <div><span class="label">Status</span><select id="ea-status-${i}" class="field">${optsStatus(ARMADA_STATUS, x.status)}</select></div>
-                        <div><span class="label">STNK berlaku sampai</span><input type="date" id="ea-stnk-${i}" class="field" value="${esc(x.stnkExp)}"></div>
-                        <div><span class="label">KIR berlaku sampai</span><input type="date" id="ea-kir-${i}" class="field" value="${esc(x.kirExp)}"></div>
-                    </div>
-                    <div class="flex gap-2">
-                        <button data-asave="${i}" class="btn btn-primary">Simpan Perubahan</button>
-                        <button data-ecancel="1" class="btn">Batal</button>
-                    </div>
-                </div>`;
-                return `
-                <div class="p-4 space-y-2">
-                    <div class="flex items-start justify-between gap-3">
-                        <div class="min-w-0">
-                            <p class="font-semibold text-slate-900">${esc(x.plat)}</p>
-                            <p class="text-sm text-slate-500">${esc(x.tipe || '-')} · ${esc(x.seat || '-')} seat</p>
-                        </div>
-                        <div class="flex gap-3 shrink-0 text-xs">
-                            <button data-aedit="${i}" class="text-blue-700 hover:underline">Edit</button>
-                            <button data-adel="${i}" class="text-rose-600 hover:underline">Hapus</button>
-                        </div>
-                    </div>
-                    <div class="flex flex-wrap items-center gap-3 text-sm">
-                        <select data-astatus="${i}" class="field !w-auto !py-1">${optsStatus(ARMADA_STATUS, x.status)}</select>
-                        <span>STNK: ${expBadge(x.stnkExp)}</span>
-                        <span>KIR: ${expBadge(x.kirExp)}</span>
-                    </div>
-                </div>`;
-              }).join('') + '</div>'
-            : '<div class="text-center text-slate-400 py-10">Belum ada armada.</div>';
     }
+
+    function armadaCard(x, i) {
+        return `
+            <div class="bg-white rounded-xl border border-slate-200 p-4 flex flex-col gap-3">
+                <div class="flex items-start justify-between gap-2">
+                    <div class="min-w-0">
+                        <p class="font-bold text-slate-900 text-lg truncate">${esc(x.plat)}</p>
+                        <p class="text-sm text-slate-500">${esc(x.tipe || '-')} · ${esc(x.seat || '-')} seat</p>
+                    </div>
+                    <select data-astatus="${i}" class="field !w-auto !py-1 text-sm">${optsStatus(ARMADA_STATUS, x.status)}</select>
+                </div>
+                <div class="text-sm space-y-1">
+                    <p>STNK: ${expBadge(x.stnkExp)}</p>
+                    <p>KIR: ${expBadge(x.kirExp)}</p>
+                </div>
+                <div class="flex gap-4 text-xs mt-auto pt-2 border-t border-slate-100">
+                    <button data-aedit="${i}" class="text-blue-700 hover:underline">Edit</button>
+                    <button data-adel="${i}" class="text-rose-600 hover:underline">Hapus</button>
+                </div>
+            </div>`;
+    }
+
+    function armadaEditCard(x, i) {
+        return `
+            <div class="sm:col-span-2 xl:col-span-3 bg-slate-50 rounded-xl border border-slate-300 p-4 space-y-3">
+                <p class="font-semibold text-slate-900">Edit ${esc(x.plat)} <span class="text-xs text-slate-400">(plat tidak bisa diubah)</span></p>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div><span class="label">Tipe</span><input id="ea-tipe-${i}" class="field" value="${esc(x.tipe)}"></div>
+                    <div><span class="label">Jumlah Seat</span><input id="ea-seat-${i}" type="number" min="0" class="field" value="${esc(x.seat)}"></div>
+                    <div><span class="label">Status</span><select id="ea-status-${i}" class="field">${optsStatus(ARMADA_STATUS, x.status)}</select></div>
+                    <div><span class="label">STNK berlaku sampai</span><input type="date" id="ea-stnk-${i}" class="field" value="${esc(x.stnkExp)}"></div>
+                    <div><span class="label">KIR berlaku sampai</span><input type="date" id="ea-kir-${i}" class="field" value="${esc(x.kirExp)}"></div>
+                </div>
+                <div class="flex gap-2">
+                    <button data-asave="${i}" class="btn btn-primary">Simpan Perubahan</button>
+                    <button data-ecancel="1" class="btn">Batal</button>
+                </div>
+            </div>`;
+    }
+
+    function renderArmada() {
+        if (!$('armada-cari')) {
+            $('armada-form').innerHTML = `
+                <div class="flex gap-2 mb-4">
+                    <input id="armada-cari" class="field" placeholder="Cari plat, tipe, atau status">
+                    <button data-toggle-form="armada" id="btn-tambah-armada" class="btn btn-primary whitespace-nowrap">+ Tambah Unit</button>
+                </div>
+                <div id="armada-addbox"></div>`;
+        }
+        $('btn-tambah-armada').textContent = formArmadaOpen ? 'Tutup Form' : '+ Tambah Unit';
+        $('armada-addbox').innerHTML = formArmadaOpen ? armadaAddForm() : '';
+        renderArmadaList();
+    }
+
+    function renderArmadaList() {
+        const cari = ($('armada-cari').value || '').toLowerCase().trim();
+        const m = getMaster();
+        const items = m.mobil.map((x, i) => ({ x, i }))
+            .filter(({ x }) => !cari || [x.plat, x.tipe, x.status].join(' ').toLowerCase().indexOf(cari) !== -1);
+        $('armada-list').innerHTML = items.length
+            ? '<div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">' + items.map(({ x, i }) => editArmada === i ? armadaEditCard(x, i) : armadaCard(x, i)).join('') + '</div>'
+            : `<div class="text-center text-slate-400 py-10">${m.mobil.length ? 'Tidak ada unit yang cocok.' : 'Belum ada armada.'}</div>`;
+    }
+
     window.portalSaveArmada = function () {
         const plat = $('a-plat').value.trim().toUpperCase();
         if (!plat) return toast('Plat nomor wajib diisi', 'err');
@@ -594,15 +622,14 @@
             status: $('a-status').value, stnkExp: $('a-stnk').value, kirExp: $('a-kir').value
         });
         saveMaster(m);
+        formArmadaOpen = false;
         toast('Armada ditambahkan');
         renderArmada();
     };
 
     /* ---------- Supir (admin & owner) ---------- */
-    function renderSupir() {
-        const m = getMaster();
-        const akun = getAkun();
-        $('supir-form').innerHTML = `
+    function supirAddForm() {
+        return `
             <div class="card mb-4 space-y-3">
                 <p class="sec-title">Tambah Supir</p>
                 <p class="text-xs text-slate-500">Nama dipakai sebagai username login sopir.</p>
@@ -615,43 +642,72 @@
                 </div>
                 <button onclick="portalSaveSupir()" class="btn btn-primary">Simpan Supir</button>
             </div>`;
-        $('supir-list').innerHTML = m.sopir.length
-            ? '<div class="bg-white rounded-2xl border border-slate-200 divide-y divide-slate-100">' + m.sopir.map((s, i) => {
-                const acc = akun.find((x) => x.role === 'sopir' && x.nama === s.nama);
-                if (editSupir === i) return `
-                <div class="p-4 space-y-3 bg-slate-50">
-                    <p class="font-semibold text-slate-900">Edit ${esc(s.nama)} <span class="text-xs text-slate-400">(nama tidak bisa diubah, dipakai sebagai username)</span></p>
-                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                        <div><span class="label">No. HP</span><input id="ess-hp-${i}" class="field" inputmode="tel" value="${esc(s.hp)}"></div>
-                        <div><span class="label">Jenis SIM</span><input id="ess-sim-${i}" class="field" value="${esc(s.sim)}"></div>
-                        <div><span class="label">SIM berlaku sampai</span><input type="date" id="ess-simexp-${i}" class="field" value="${esc(s.simExp)}"></div>
-                    </div>
-                    <div class="flex gap-2">
-                        <button data-ssave="${i}" class="btn btn-primary">Simpan Perubahan</button>
-                        <button data-ecancel="1" class="btn">Batal</button>
-                    </div>
-                </div>`;
-                return `
-                <div class="p-4 space-y-2">
-                    <div class="flex items-start justify-between gap-3">
-                        <div class="min-w-0">
-                            <p class="font-semibold text-slate-900">${esc(s.nama)}</p>
-                            <p class="text-sm text-slate-500">${esc(s.hp || '-')} · SIM ${esc(s.sim || '-')}</p>
-                        </div>
-                        <div class="flex gap-3 shrink-0 text-xs">
-                            <button data-sedit="${i}" class="text-blue-700 hover:underline">Edit</button>
-                            <button data-spin="${i}" class="text-blue-700 hover:underline">Reset PIN</button>
-                            <button data-sdel="${i}" class="text-rose-600 hover:underline">Hapus</button>
-                        </div>
-                    </div>
-                    <div class="flex flex-wrap items-center gap-3 text-sm">
-                        <select data-sstatus="${i}" class="field !w-auto !py-1">${optsStatus(SOPIR_STATUS, acc && acc.aktif === false ? 'Nonaktif' : 'Aktif')}</select>
-                        <span>SIM: ${expBadge(s.simExp)}</span>
-                    </div>
-                </div>`;
-              }).join('') + '</div>'
-            : '<div class="text-center text-slate-400 py-10">Belum ada supir.</div>';
     }
+
+    function supirCard(s, i, akun) {
+        const acc = akun.find((x) => x.role === 'sopir' && x.nama === s.nama);
+        return `
+            <div class="bg-white rounded-xl border border-slate-200 p-4 flex flex-col gap-3">
+                <div class="flex items-start justify-between gap-2">
+                    <div class="min-w-0">
+                        <p class="font-bold text-slate-900 text-lg truncate">${esc(s.nama)}</p>
+                        <p class="text-sm text-slate-500">${esc(s.hp || '-')} · SIM ${esc(s.sim || '-')}</p>
+                    </div>
+                    <select data-sstatus="${i}" class="field !w-auto !py-1 text-sm">${optsStatus(SOPIR_STATUS, acc && acc.aktif === false ? 'Nonaktif' : 'Aktif')}</select>
+                </div>
+                <p class="text-sm">SIM: ${expBadge(s.simExp)}</p>
+                <div class="flex gap-4 text-xs mt-auto pt-2 border-t border-slate-100">
+                    <button data-sedit="${i}" class="text-blue-700 hover:underline">Edit</button>
+                    <button data-spin="${i}" class="text-blue-700 hover:underline">Reset PIN</button>
+                    <button data-sdel="${i}" class="text-rose-600 hover:underline">Hapus</button>
+                </div>
+            </div>`;
+    }
+
+    function supirEditCard(s, i) {
+        return `
+            <div class="sm:col-span-2 xl:col-span-3 bg-slate-50 rounded-xl border border-slate-300 p-4 space-y-3">
+                <p class="font-semibold text-slate-900">Edit ${esc(s.nama)} <span class="text-xs text-slate-400">(nama tidak bisa diubah, dipakai sebagai username)</span></p>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div><span class="label">No. HP</span><input id="ess-hp-${i}" class="field" inputmode="tel" value="${esc(s.hp)}"></div>
+                    <div><span class="label">Jenis SIM</span><input id="ess-sim-${i}" class="field" value="${esc(s.sim)}"></div>
+                    <div><span class="label">SIM berlaku sampai</span><input type="date" id="ess-simexp-${i}" class="field" value="${esc(s.simExp)}"></div>
+                </div>
+                <div class="flex gap-2">
+                    <button data-ssave="${i}" class="btn btn-primary">Simpan Perubahan</button>
+                    <button data-ecancel="1" class="btn">Batal</button>
+                </div>
+            </div>`;
+    }
+
+    function renderSupir() {
+        if (!$('supir-cari')) {
+            $('supir-form').innerHTML = `
+                <div class="flex gap-2 mb-4">
+                    <input id="supir-cari" class="field" placeholder="Cari nama, HP, atau status">
+                    <button data-toggle-form="supir" id="btn-tambah-supir" class="btn btn-primary whitespace-nowrap">+ Tambah Supir</button>
+                </div>
+                <div id="supir-addbox"></div>`;
+        }
+        $('btn-tambah-supir').textContent = formSupirOpen ? 'Tutup Form' : '+ Tambah Supir';
+        $('supir-addbox').innerHTML = formSupirOpen ? supirAddForm() : '';
+        renderSupirList();
+    }
+
+    function renderSupirList() {
+        const cari = ($('supir-cari').value || '').toLowerCase().trim();
+        const m = getMaster();
+        const akun = getAkun();
+        const items = m.sopir.map((s, i) => ({ s, i })).filter(({ s }) => {
+            const acc = akun.find((x) => x.role === 'sopir' && x.nama === s.nama);
+            const st = acc && acc.aktif === false ? 'Nonaktif' : 'Aktif';
+            return !cari || [s.nama, s.hp, s.sim, st].join(' ').toLowerCase().indexOf(cari) !== -1;
+        });
+        $('supir-list').innerHTML = items.length
+            ? '<div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">' + items.map(({ s, i }) => editSupir === i ? supirEditCard(s, i) : supirCard(s, i, akun)).join('') + '</div>'
+            : `<div class="text-center text-slate-400 py-10">${m.sopir.length ? 'Tidak ada supir yang cocok.' : 'Belum ada supir.'}</div>`;
+    }
+
     window.portalSaveSupir = function () {
         const nama = $('s-nama').value.trim();
         const pin = $('s-pin').value.trim();
@@ -666,6 +722,7 @@
         saveMaster(m);
         akun.push({ id: uid(), username, nama, role: 'sopir', pin, aktif: true });
         saveAkun(akun);
+        formSupirOpen = false;
         toast('Supir ditambahkan. Login pakai nama sebagai username.');
         renderSupir();
     };
@@ -807,6 +864,10 @@
         if ((el = t('[data-bdel]'))) { if (!confirm('Hapus booking ini?')) return; saveBooking(getBooking().filter((x) => x.id !== el.dataset.bdel)); return renderJadwal(); }
         if ((el = t('[data-assign]'))) return handleAssign(el.dataset.assign);
         if ((el = t('[data-cek-save]'))) return handleCekSave(el.dataset.cekSave, el.dataset.cekFase);
+        if ((el = t('[data-toggle-form]'))) {
+            if (el.dataset.toggleForm === 'armada') { formArmadaOpen = !formArmadaOpen; return renderArmada(); }
+            formSupirOpen = !formSupirOpen; return renderSupir();
+        }
         if ((el = t('[data-aedit]'))) { editArmada = Number(el.dataset.aedit); return renderArmada(); }
         if ((el = t('[data-sedit]'))) { editSupir = Number(el.dataset.sedit); return renderSupir(); }
         if ((el = t('[data-ecancel]'))) { editArmada = -1; editSupir = -1; renderArmada(); return renderSupir(); }
@@ -877,7 +938,10 @@
     });
 
     document.addEventListener('input', (e) => {
-        if (e.target && e.target.id === 'jadwal-cari') renderBookingAdmin();
+        const id = e.target && e.target.id;
+        if (id === 'jadwal-cari') renderBookingAdmin();
+        if (id === 'armada-cari') renderArmadaList();
+        if (id === 'supir-cari') renderSupirList();
     });
 
     document.addEventListener('change', (e) => {
