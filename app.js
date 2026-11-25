@@ -6,7 +6,7 @@
 
     /* ---------- Konstanta ---------- */
     const KEY = { company: 'tw_company', history: 'tw_history', active: 'tw_active' };
-    const TABS = ['transaksi', 'perusahaan', 'pembayaran', 'riwayat'];
+    const TABS = ['transaksi', 'perusahaan', 'riwayat'];
     const STATUS_LABEL = { UNPAID: 'BELUM BAYAR', DP: 'DP / UANG MUKA', LUNAS: 'LUNAS' };
     const STAMP_LABEL = { UNPAID: 'BELUM BAYAR', DP: 'DP', LUNAS: 'LUNAS' };
     const BADGE_TEXT = { UNPAID: 'text-rose-600', DP: 'text-amber-600', LUNAS: 'text-emerald-600' };
@@ -641,13 +641,43 @@
         return 'Invoice-' + (state.invoice.number || 'draft').replace(/[\\/:*?"<>|\s]+/g, '-');
     }
 
-    function captureInvoice() {
-        const target = $('invoice-paper-target');
-        return withPreviewVisible(() => html2canvas(target, {
-            scale: 2,
-            backgroundColor: '#ffffff',
-            useCORS: true
-        }));
+    // Render invoice ke kanvas A4 (794 x 1123 px) dengan lebar tetap, tidak tergantung layar
+    async function captureA4() {
+        const src = $('invoice-paper-target');
+        const clone = src.cloneNode(true);
+        clone.removeAttribute('id');
+        clone.style.width = '794px';
+        clone.style.maxWidth = 'none';
+        clone.style.margin = '0';
+        clone.style.boxShadow = 'none';
+        clone.style.position = 'fixed';
+        clone.style.left = '-10000px';
+        clone.style.top = '0';
+        document.body.appendChild(clone);
+        try {
+            const c = await html2canvas(clone, {
+                scale: 2,
+                backgroundColor: '#ffffff',
+                width: 794,
+                windowWidth: 794,
+                useCORS: true
+            });
+            const PAGE_W = 794 * 2;
+            const PAGE_H = 1123 * 2;
+            const page = document.createElement('canvas');
+            page.width = PAGE_W;
+            page.height = PAGE_H;
+            const ctx = page.getContext('2d');
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, PAGE_W, PAGE_H);
+            const s = Math.min(1, PAGE_H / c.height, PAGE_W / c.width);
+            const w = c.width * s;
+            const hgt = c.height * s;
+            ctx.drawImage(c, (PAGE_W - w) / 2, 0, w, hgt);
+            return page;
+        } finally {
+            clone.remove();
+        }
     }
 
     async function exportToPDF() {
@@ -657,19 +687,10 @@
         }
         showToast('Menyiapkan PDF...', 'info');
         try {
-            const canvas = await captureInvoice();
+            const page = await captureA4();
             const { jsPDF } = window.jspdf;
             const pdf = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
-            const pageW = 210;
-            const pageH = 297;
-            let w = pageW;
-            let h = canvas.height * pageW / canvas.width;
-            if (h > pageH) {
-                const s = pageH / h;
-                w *= s;
-                h = pageH;
-            }
-            pdf.addImage(canvas.toDataURL('image/jpeg', 0.95), 'JPEG', (pageW - w) / 2, 0, w, h);
+            pdf.addImage(page.toDataURL('image/jpeg', 0.95), 'JPEG', 0, 0, 210, 297);
             pdf.save(fileBaseName() + '.pdf');
             showToast('PDF berhasil diunduh');
         } catch (err) {
@@ -685,9 +706,9 @@
         }
         showToast('Menyiapkan gambar...', 'info');
         try {
-            const canvas = await captureInvoice();
+            const page = await captureA4();
             const a = document.createElement('a');
-            a.href = canvas.toDataURL('image/jpeg', 0.92);
+            a.href = page.toDataURL('image/jpeg', 0.92);
             a.download = fileBaseName() + '.jpg';
             document.body.appendChild(a);
             a.click();

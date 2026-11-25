@@ -61,7 +61,6 @@
             <p class="side-group">Generator Invoice</p>
             <button id="tab-btn-transaksi" onclick="openGenerator('transaksi')" class="tab-btn">Transaksi</button>
             <button id="tab-btn-perusahaan" onclick="openGenerator('perusahaan')" class="tab-btn">Perusahaan</button>
-            <button id="tab-btn-pembayaran" onclick="openGenerator('pembayaran')" class="tab-btn">Pembayaran</button>
             <button id="tab-btn-riwayat" onclick="openGenerator('riwayat')" class="tab-btn">
                 Riwayat Generator <span id="history-count-badge" class="count">0</span>
             </button>
@@ -73,7 +72,6 @@
             <div id="export-dropdown-wrapper" class="relative">
                 <button onclick="toggleExportMenu()" class="w-full btn">Export</button>
                 <div id="export-menu" class="hidden absolute bottom-full left-0 right-0 mb-2 bg-white text-slate-800 rounded-xl shadow-xl border border-slate-200 overflow-hidden text-sm">
-                    <button onclick="printInvoice(); toggleExportMenu(false);" class="block w-full text-left px-4 py-2.5 hover:bg-slate-50">Print / Save PDF</button>
                     <button onclick="exportToPDF(); toggleExportMenu(false);" class="block w-full text-left px-4 py-2.5 hover:bg-slate-50">Download PDF</button>
                     <button onclick="exportToJPG(); toggleExportMenu(false);" class="block w-full text-left px-4 py-2.5 hover:bg-slate-50">Download JPG</button>
                 </div>
@@ -208,11 +206,31 @@
                         </div>
 
                         <div>
+                            <p class="sec-title">Status Pembayaran</p>
+                            <div class="grid grid-cols-3 gap-2">
+                                <button id="status-btn-UNPAID" onclick="setPaymentStatus('UNPAID')" class="status-btn btn">Belum Bayar</button>
+                                <button id="status-btn-DP" onclick="setPaymentStatus('DP')" class="status-btn btn">DP</button>
+                                <button id="status-btn-LUNAS" onclick="setPaymentStatus('LUNAS')" class="status-btn btn">Lunas</button>
+                            </div>
+                        </div>
+
+                        <div>
                             <p class="sec-title">Ditagihkan kepada</p>
                             <div class="space-y-3">
                                 <div><span class="label">Nama Customer</span><input id="in-cust-name" class="field" oninput="updatePreview()"></div>
                                 <div><span class="label">No. Telepon</span><input id="in-cust-phone" class="field" oninput="updatePreview()"></div>
                                 <div><span class="label">Alamat</span><textarea id="in-cust-address" rows="2" class="field" oninput="updatePreview()"></textarea></div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <p class="sec-title">Nominal DP</p>
+                            <div id="dp-input-wrapper" class="hidden space-y-2">
+                                <span class="label">Nominal DP (Rp)</span>
+                                <div class="flex flex-col sm:flex-row gap-2">
+                                    <input id="in-dp-amount" type="number" min="0" class="field" oninput="onDpInput()">
+                                    <button onclick="setFullPayment()" class="btn whitespace-nowrap">Samakan dengan Grand Total</button>
+                                </div>
                             </div>
                         </div>
 
@@ -248,27 +266,7 @@
                                 <button id="btn-remove-logo" onclick="removeLogo()" class="btn hidden">Hapus Logo</button>
                             </div>
                         </div>
-                        <button onclick="saveCompanyProfile()" class="btn btn-dark w-full">Simpan Profil</button>
-                    </div>
-
-                    <!-- Tab: Pembayaran -->
-                    <div id="tab-content-pembayaran" class="card space-y-5 hidden">
-                        <div>
-                            <p class="sec-title">Status Pembayaran</p>
-                            <div class="grid grid-cols-3 gap-2">
-                                <button id="status-btn-UNPAID" onclick="setPaymentStatus('UNPAID')" class="status-btn btn">Belum Bayar</button>
-                                <button id="status-btn-DP" onclick="setPaymentStatus('DP')" class="status-btn btn">DP</button>
-                                <button id="status-btn-LUNAS" onclick="setPaymentStatus('LUNAS')" class="status-btn btn">Lunas</button>
-                            </div>
-                            <div id="dp-input-wrapper" class="hidden mt-3 space-y-2">
-                                <span class="label">Nominal DP (Rp)</span>
-                                <div class="flex flex-col sm:flex-row gap-2">
-                                    <input id="in-dp-amount" type="number" min="0" class="field" oninput="onDpInput()">
-                                    <button onclick="setFullPayment()" class="btn whitespace-nowrap">Samakan dengan Grand Total</button>
-                                </div>
-                            </div>
-                        </div>
-
+                        
                         <div>
                             <span class="label">Rekening Bank</span>
                             <textarea id="in-bank-info" rows="3" class="field" oninput="updatePreview()"></textarea>
@@ -307,6 +305,8 @@
                             <span class="label">Catatan / Syarat &amp; Ketentuan</span>
                             <textarea id="in-notes" rows="4" class="field" oninput="updatePreview()"></textarea>
                         </div>
+
+                        <button onclick="saveCompanyProfile()" class="btn btn-dark w-full">Simpan Profil</button>
                     </div>
 
                     <!-- Tab: Riwayat Generator -->
