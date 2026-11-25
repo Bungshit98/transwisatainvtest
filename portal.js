@@ -16,10 +16,10 @@
     const ROLE_LABEL = { owner: 'Owner', dev: 'Developer', admin: 'Admin', mandor: 'Mandor', sopir: 'Sopir' };
     const LAPANGAN = ['jadwal', 'pengeluaran', 'pin'];
     const VIEWS = {
-        owner: ['dashboard', 'invoices', 'generator', 'jadwal', 'pengeluaran', 'rekap', 'armada', 'supir', 'keuangan', 'arsip', 'akun', 'pin'],
-        dev: ['dashboard', 'invoices', 'generator', 'jadwal', 'pengeluaran', 'rekap', 'armada', 'supir', 'keuangan', 'arsip', 'akun', 'pin'],
-        admin: ['dashboard', 'invoices', 'generator', 'jadwal', 'pengeluaran', 'rekap', 'armada', 'supir', 'keuangan', 'arsip', 'pin'],
-        mandor: ['jadwal', 'pin'],
+        owner: ['dashboard', 'invoices', 'generator', 'jadwal', 'rekap', 'armada', 'supir', 'keuangan', 'arsip', 'akun', 'pin'],
+        dev: ['dashboard', 'invoices', 'generator', 'jadwal', 'rekap', 'armada', 'supir', 'keuangan', 'arsip', 'akun', 'pin'],
+        admin: ['dashboard', 'invoices', 'generator', 'jadwal', 'rekap', 'armada', 'supir', 'keuangan', 'arsip', 'pin'],
+        mandor: ['jadwal', 'pengeluaran', 'pin'],
         sopir: ['pengeluaran', 'jadwal', 'pin']
     };
     const CEK_ITEMS = ['BBM cukup', 'Ban & angin', 'Lampu & wiper', 'Kebersihan', 'Dokumen (STNK, KIR, SIM)', 'Kondisi driver siap'];
@@ -180,6 +180,8 @@
     }
 
     const openBooking = new Set();
+    let editArmada = -1;
+    let editSupir = -1;
 
     function bookingDetail(b) {
         const cekRow = (fase) => {
@@ -417,11 +419,9 @@
         let list = load(KEY.pengeluaran, []);
         if (role === 'sopir') list = list.filter((p) => p.sopir === session.nama);
         list = list.slice().sort((a, c) => String(c.tanggal).localeCompare(String(a.tanggal))).slice(0, 200);
-        const admin = role !== 'sopir' && role !== 'mandor';
-        const sopirField = admin
-            ? `<div><span class="label">Sopir</span><select id="p-sopir" class="field">${opts(namaSopir(m))}</select></div>`
-            : `<div><span class="label">Sopir</span><input class="field" value="${esc(session.nama)}" disabled></div>`;
-        $('pengeluaran-form').innerHTML = `
+        const canInput = role === 'sopir';
+        const sopirField = `<div><span class="label">Sopir</span><input class="field" value="${esc(session.nama)}" disabled></div>`;
+        $('pengeluaran-form').innerHTML = !canInput ? '<p class="text-sm text-slate-500 mb-4">Mandor hanya melihat pengeluaran driver.</p>' : `
             <div class="card mb-4 space-y-3">
                 <p class="sec-title">Input Pengeluaran</p>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -443,7 +443,7 @@
                     </div>
                     <div class="text-right shrink-0">
                         <p class="font-semibold text-slate-900">${rp(p.nominal)}</p>
-                        ${admin ? `<button data-pdel="${esc(p.id)}" class="text-xs text-rose-600 hover:underline">Hapus</button>` : ''}
+
                     </div>
                 </div>`).join('') + '</div>'
             : '<div class="text-center text-slate-400 py-10">Belum ada pengeluaran.</div>';
@@ -547,21 +547,41 @@
                 <button onclick="portalSaveArmada()" class="btn btn-primary">Simpan Armada</button>
             </div>`;
         $('armada-list').innerHTML = m.mobil.length
-            ? '<div class="bg-white rounded-2xl border border-slate-200 divide-y divide-slate-100">' + m.mobil.map((x, i) => `
+            ? '<div class="bg-white rounded-2xl border border-slate-200 divide-y divide-slate-100">' + m.mobil.map((x, i) => {
+                if (editArmada === i) return `
+                <div class="p-4 space-y-3 bg-slate-50">
+                    <p class="font-semibold text-slate-900">Edit ${esc(x.plat)} <span class="text-xs text-slate-400">(plat tidak bisa diubah)</span></p>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div><span class="label">Tipe</span><input id="ea-tipe-${i}" class="field" value="${esc(x.tipe)}"></div>
+                        <div><span class="label">Jumlah Seat</span><input id="ea-seat-${i}" type="number" min="0" class="field" value="${esc(x.seat)}"></div>
+                        <div><span class="label">Status</span><select id="ea-status-${i}" class="field">${optsStatus(ARMADA_STATUS, x.status)}</select></div>
+                        <div><span class="label">STNK berlaku sampai</span><input type="date" id="ea-stnk-${i}" class="field" value="${esc(x.stnkExp)}"></div>
+                        <div><span class="label">KIR berlaku sampai</span><input type="date" id="ea-kir-${i}" class="field" value="${esc(x.kirExp)}"></div>
+                    </div>
+                    <div class="flex gap-2">
+                        <button data-asave="${i}" class="btn btn-primary">Simpan Perubahan</button>
+                        <button data-ecancel="1" class="btn">Batal</button>
+                    </div>
+                </div>`;
+                return `
                 <div class="p-4 space-y-2">
                     <div class="flex items-start justify-between gap-3">
                         <div class="min-w-0">
                             <p class="font-semibold text-slate-900">${esc(x.plat)}</p>
                             <p class="text-sm text-slate-500">${esc(x.tipe || '-')} · ${esc(x.seat || '-')} seat</p>
                         </div>
-                        <button data-adel="${i}" class="text-xs text-rose-600 hover:underline shrink-0">Hapus</button>
+                        <div class="flex gap-3 shrink-0 text-xs">
+                            <button data-aedit="${i}" class="text-blue-700 hover:underline">Edit</button>
+                            <button data-adel="${i}" class="text-rose-600 hover:underline">Hapus</button>
+                        </div>
                     </div>
                     <div class="flex flex-wrap items-center gap-3 text-sm">
                         <select data-astatus="${i}" class="field !w-auto !py-1">${optsStatus(ARMADA_STATUS, x.status)}</select>
                         <span>STNK: ${expBadge(x.stnkExp)}</span>
                         <span>KIR: ${expBadge(x.kirExp)}</span>
                     </div>
-                </div>`).join('') + '</div>'
+                </div>`;
+              }).join('') + '</div>'
             : '<div class="text-center text-slate-400 py-10">Belum ada armada.</div>';
     }
     window.portalSaveArmada = function () {
@@ -598,6 +618,19 @@
         $('supir-list').innerHTML = m.sopir.length
             ? '<div class="bg-white rounded-2xl border border-slate-200 divide-y divide-slate-100">' + m.sopir.map((s, i) => {
                 const acc = akun.find((x) => x.role === 'sopir' && x.nama === s.nama);
+                if (editSupir === i) return `
+                <div class="p-4 space-y-3 bg-slate-50">
+                    <p class="font-semibold text-slate-900">Edit ${esc(s.nama)} <span class="text-xs text-slate-400">(nama tidak bisa diubah, dipakai sebagai username)</span></p>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div><span class="label">No. HP</span><input id="ess-hp-${i}" class="field" inputmode="tel" value="${esc(s.hp)}"></div>
+                        <div><span class="label">Jenis SIM</span><input id="ess-sim-${i}" class="field" value="${esc(s.sim)}"></div>
+                        <div><span class="label">SIM berlaku sampai</span><input type="date" id="ess-simexp-${i}" class="field" value="${esc(s.simExp)}"></div>
+                    </div>
+                    <div class="flex gap-2">
+                        <button data-ssave="${i}" class="btn btn-primary">Simpan Perubahan</button>
+                        <button data-ecancel="1" class="btn">Batal</button>
+                    </div>
+                </div>`;
                 return `
                 <div class="p-4 space-y-2">
                     <div class="flex items-start justify-between gap-3">
@@ -605,9 +638,10 @@
                             <p class="font-semibold text-slate-900">${esc(s.nama)}</p>
                             <p class="text-sm text-slate-500">${esc(s.hp || '-')} · SIM ${esc(s.sim || '-')}</p>
                         </div>
-                        <div class="flex gap-3 shrink-0">
-                            <button data-spin="${i}" class="text-xs text-blue-700 hover:underline">Reset PIN</button>
-                            <button data-sdel="${i}" class="text-xs text-rose-600 hover:underline">Hapus</button>
+                        <div class="flex gap-3 shrink-0 text-xs">
+                            <button data-sedit="${i}" class="text-blue-700 hover:underline">Edit</button>
+                            <button data-spin="${i}" class="text-blue-700 hover:underline">Reset PIN</button>
+                            <button data-sdel="${i}" class="text-rose-600 hover:underline">Hapus</button>
                         </div>
                     </div>
                     <div class="flex flex-wrap items-center gap-3 text-sm">
@@ -615,7 +649,7 @@
                         <span>SIM: ${expBadge(s.simExp)}</span>
                     </div>
                 </div>`;
-            }).join('') + '</div>'
+              }).join('') + '</div>'
             : '<div class="text-center text-slate-400 py-10">Belum ada supir.</div>';
     }
     window.portalSaveSupir = function () {
@@ -773,7 +807,37 @@
         if ((el = t('[data-bdel]'))) { if (!confirm('Hapus booking ini?')) return; saveBooking(getBooking().filter((x) => x.id !== el.dataset.bdel)); return renderJadwal(); }
         if ((el = t('[data-assign]'))) return handleAssign(el.dataset.assign);
         if ((el = t('[data-cek-save]'))) return handleCekSave(el.dataset.cekSave, el.dataset.cekFase);
-        if ((el = t('[data-pdel]'))) { if (!confirm('Hapus pengeluaran ini?')) return; save(KEY.pengeluaran, load(KEY.pengeluaran, []).filter((x) => x.id !== el.dataset.pdel)); return renderPengeluaran(); }
+        if ((el = t('[data-aedit]'))) { editArmada = Number(el.dataset.aedit); return renderArmada(); }
+        if ((el = t('[data-sedit]'))) { editSupir = Number(el.dataset.sedit); return renderSupir(); }
+        if ((el = t('[data-ecancel]'))) { editArmada = -1; editSupir = -1; renderArmada(); return renderSupir(); }
+        if ((el = t('[data-asave]'))) {
+            const i = Number(el.dataset.asave);
+            const m = getMaster();
+            const x = m.mobil[i];
+            if (!x) return;
+            x.tipe = $('ea-tipe-' + i).value.trim();
+            x.seat = $('ea-seat-' + i).value;
+            x.status = $('ea-status-' + i).value;
+            x.stnkExp = $('ea-stnk-' + i).value;
+            x.kirExp = $('ea-kir-' + i).value;
+            saveMaster(m);
+            editArmada = -1;
+            toast('Data armada diperbarui');
+            return renderArmada();
+        }
+        if ((el = t('[data-ssave]'))) {
+            const i = Number(el.dataset.ssave);
+            const m = getMaster();
+            const s = m.sopir[i];
+            if (!s) return;
+            s.hp = $('ess-hp-' + i).value.trim();
+            s.sim = $('ess-sim-' + i).value.trim();
+            s.simExp = $('ess-simexp-' + i).value;
+            saveMaster(m);
+            editSupir = -1;
+            toast('Data supir diperbarui');
+            return renderSupir();
+        }
         if ((el = t('[data-adel]'))) { if (!confirm('Hapus armada ini?')) return; const m = getMaster(); m.mobil.splice(Number(el.dataset.adel), 1); saveMaster(m); return renderArmada(); }
         if ((el = t('[data-sdel]'))) {
             if (!confirm('Hapus supir ini? Akun loginnya juga dihapus.')) return;
