@@ -43,17 +43,9 @@
 <div id="login-screen" class="fixed inset-0 z-[60] bg-slate-900 flex items-center justify-center p-4">
     <div class="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl">
         <p class="text-lg font-bold text-slate-900">Transwisata</p>
-        <p class="text-sm text-slate-500 mb-4">Masuk sebagai peran</p>
-        <span class="label">Peran</span>
-        <select id="login-role" class="field mb-3">
-            <option value="sopir">Sopir</option>
-            <option value="mandor">Mandor</option>
-            <option value="admin">Admin</option>
-        </select>
-        <div id="login-nama-wrap" class="mb-3">
-            <span class="label">Nama Sopir</span>
-            <select id="login-nama" class="field"></select>
-        </div>
+        <p class="text-sm text-slate-500 mb-4">Masuk dengan username dan PIN</p>
+        <span class="label">Username</span>
+        <input id="login-user" class="field mb-3" placeholder="Username" autocomplete="username">
         <span class="label">PIN</span>
         <input id="login-pin" type="password" inputmode="numeric" class="field mb-2" placeholder="PIN">
         <p id="login-msg" class="text-sm text-rose-600 min-h-[20px]"></p>
@@ -87,6 +79,8 @@
             <button data-nav="armada" class="nav-btn" onclick="showView('armada'); closeSidebar()">Armada</button>
             <button data-nav="supir" class="nav-btn" onclick="showView('supir'); closeSidebar()">Supir</button>
             <button data-nav="keuangan" class="nav-btn" onclick="showView('keuangan'); closeSidebar()">Keuangan</button>
+            <button data-nav="arsip" class="nav-btn" onclick="showView('arsip'); closeSidebar()">Arsip Booking</button>
+            <button data-nav="akun" class="nav-btn" onclick="showView('akun'); closeSidebar()">Akun &amp; Reset</button>
 
             <p class="side-group">Generator Invoice</p>
             <button id="tab-btn-transaksi" onclick="openGenerator('transaksi')" class="tab-btn">Transaksi</button>
@@ -122,6 +116,7 @@
             </div>
             <div class="flex items-center gap-2">
                 <p id="today" class="hidden md:block text-sm text-slate-500"></p>
+                <button id="btn-print" onclick="window.print()" class="btn hidden no-print">Cetak</button>
                 <button id="mobile-toggle" onclick="toggleMobileView()" class="btn hidden"><span id="mobile-toggle-text">Preview</span></button>
             </div>
         </header>
@@ -258,6 +253,20 @@
         <!-- ============ VIEW: PIN ============ -->
         <section id="view-pin" class="hidden">
             <div id="pin-body" class="max-w-md"></div>
+        </section>
+
+        <!-- ============ VIEW: ARSIP ============ -->
+        <section id="view-arsip" class="hidden">
+            <div class="card mb-4">
+                <span class="label">Cari</span>
+                <input id="arsip-cari" class="field" placeholder="Nama customer, unit, sopir, invoice, atau tanggal (YYYY-MM-DD)">
+            </div>
+            <div id="arsip-list"></div>
+        </section>
+
+        <!-- ============ VIEW: AKUN ============ -->
+        <section id="view-akun" class="hidden">
+            <div id="akun-body"></div>
         </section>
 
         <!-- ============ VIEW: GENERATOR ============ -->
@@ -544,7 +553,9 @@
         armada: ['Armada', 'Data mobil, status, dan masa berlaku STNK/KIR'],
         supir: ['Supir', 'Data supir, SIM, dan PIN'],
         keuangan: ['Keuangan', 'Omzet, pengeluaran, dan laba per bulan'],
-        pin: ['PIN Saya', 'Ganti PIN akun ini']
+        pin: ['PIN Saya', 'Ganti PIN akun ini'],
+        akun: ['Akun & Reset', 'Kelola pengguna dan reset web'],
+        arsip: ['Arsip Booking', 'Booking yang sudah selesai']
     };
     function showView(name) {
         Object.keys(VIEW_TITLES).forEach((v) => {
