@@ -77,16 +77,16 @@
             <p class="side-group">Lapangan</p>
             <button data-nav="jadwal" class="nav-btn" onclick="showView('jadwal'); closeSidebar()">Jadwal</button>
             <button data-nav="pengeluaran" class="nav-btn" onclick="showView('pengeluaran'); closeSidebar()">Pengeluaran</button>
-            <button data-nav="rekap" class="nav-btn" onclick="showView('rekap'); closeSidebar()">Rekap</button>
-            <button data-nav="master" class="nav-btn" onclick="showView('master'); closeSidebar()">Master</button>
+            <button data-nav="rekap" class="nav-btn admin-only" onclick="showView('rekap'); closeSidebar()">Rekap</button>
+            <button data-nav="pin" class="nav-btn" onclick="showView('pin'); closeSidebar()">PIN Saya</button>
 
             <div class="admin-only">
             <p class="side-group">Dashboard</p>
             <button data-nav="dashboard" class="nav-btn active" onclick="showView('dashboard'); closeSidebar()">Ringkasan</button>
             <button data-nav="invoices" class="nav-btn" onclick="showView('invoices'); closeSidebar()">Daftar Invoice</button>
-            <button data-nav="soon" class="nav-btn" onclick="showView('soon'); closeSidebar()">Armada</button>
-            <button data-nav="soon" class="nav-btn" onclick="showView('soon'); closeSidebar()">Supir</button>
-            <button data-nav="soon" class="nav-btn" onclick="showView('soon'); closeSidebar()">Keuangan</button>
+            <button data-nav="armada" class="nav-btn" onclick="showView('armada'); closeSidebar()">Armada</button>
+            <button data-nav="supir" class="nav-btn" onclick="showView('supir'); closeSidebar()">Supir</button>
+            <button data-nav="keuangan" class="nav-btn" onclick="showView('keuangan'); closeSidebar()">Keuangan</button>
 
             <p class="side-group">Generator Invoice</p>
             <button id="tab-btn-transaksi" onclick="openGenerator('transaksi')" class="tab-btn">Transaksi</button>
@@ -234,9 +234,30 @@
             <div id="rekap-out"></div>
         </section>
 
-        <!-- ============ VIEW: MASTER ============ -->
-        <section id="view-master" class="hidden">
-            <div id="master-body" class="grid grid-cols-1 xl:grid-cols-2 gap-4"></div>
+        <!-- ============ VIEW: ARMADA ============ -->
+        <section id="view-armada" class="hidden">
+            <div id="armada-form"></div>
+            <div id="armada-list"></div>
+        </section>
+
+        <!-- ============ VIEW: SUPIR ============ -->
+        <section id="view-supir" class="hidden">
+            <div id="supir-form"></div>
+            <div id="supir-list"></div>
+        </section>
+
+        <!-- ============ VIEW: KEUANGAN ============ -->
+        <section id="view-keuangan" class="hidden">
+            <div class="card mb-4">
+                <span class="label">Bulan</span>
+                <input id="keu-bulan" type="month" class="field max-w-[240px]">
+            </div>
+            <div id="keuangan-out"></div>
+        </section>
+
+        <!-- ============ VIEW: PIN ============ -->
+        <section id="view-pin" class="hidden">
+            <div id="pin-body" class="max-w-md"></div>
         </section>
 
         <!-- ============ VIEW: GENERATOR ============ -->
@@ -520,7 +541,10 @@
         jadwal: ['Jadwal', 'Jadwal armada dan sopir'],
         pengeluaran: ['Pengeluaran', 'Biaya perjalanan armada'],
         rekap: ['Rekap', 'Ringkasan pengeluaran per bulan'],
-        master: ['Master', 'Daftar sopir dan mobil']
+        armada: ['Armada', 'Data mobil, status, dan masa berlaku STNK/KIR'],
+        supir: ['Supir', 'Data supir, SIM, dan PIN'],
+        keuangan: ['Keuangan', 'Omzet, pengeluaran, dan laba per bulan'],
+        pin: ['PIN Saya', 'Ganti PIN akun ini']
     };
     function showView(name) {
         Object.keys(VIEW_TITLES).forEach((v) => {
