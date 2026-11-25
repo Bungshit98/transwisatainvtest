@@ -737,6 +737,43 @@
         }
     });
 
+    /* ---------- Invoice -> booking otomatis ---------- */
+    function syncBookingFromInvoice() {
+        let inv;
+        try { inv = JSON.parse(localStorage.getItem('tw_active')); } catch (e) { return; }
+        if (!inv || !inv.number) return;
+        if (!load(KEY.history, []).some((h) => h.number === inv.number)) return;
+
+        const cust = inv.customer || {};
+        const tujuan = (inv.items || []).map((i) => String(i.desc || '').trim()).filter(Boolean);
+        const list = getBooking();
+        const b = list.find((x) => x.invoice === inv.number);
+
+        if (b) {
+            b.customer = cust.name || b.customer;
+            b.hp = cust.phone || b.hp;
+            b.tanggal = inv.date || b.tanggal;
+            const started = !!b.mobil || b.progres.some((p) => p.done);
+            if (!started && tujuan.length) {
+                b.tujuan = tujuan;
+                b.progres = tujuan.map(() => ({ done: false, jam: '' }));
+            }
+            saveBooking(list);
+            return toast('Booking ' + inv.number + ' diperbarui dari invoice');
+        }
+
+        if (!tujuan.length) return toast('Invoice belum punya deskripsi tujuan, booking tidak dibuat', 'err');
+        list.push({
+            id: uid(), tanggal: inv.date || today(), customer: cust.name || '-', hp: cust.phone || '',
+            invoice: inv.number, tujuan, mobil: '', sopir: '',
+            progres: tujuan.map(() => ({ done: false, jam: '' })),
+            cek: { pre: {}, post: {} }, dibuat: new Date().toISOString()
+        });
+        saveBooking(list);
+        toast('Booking dibuat otomatis dari invoice');
+        if (typeof window.__refreshBooking === 'function') window.__refreshBooking();
+    }
+
     /* ---------- Hook dari showView di index.html ---------- */
     window.__onView = function (name) {
         if (!session) return;
@@ -750,6 +787,10 @@
 
     function init() {
         getAkun();
+        const origSave = window.saveInvoiceToHistory;
+        if (typeof origSave === 'function') {
+            window.saveInvoiceToHistory = function () { origSave(); syncBookingFromInvoice(); };
+        }
         $('rekap-bulan').addEventListener('change', renderRekap);
         $('keu-bulan').addEventListener('change', renderKeuangan);
         $('arsip-cari').addEventListener('input', renderArsip);
