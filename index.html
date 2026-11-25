@@ -35,9 +35,31 @@
         .tab-btn.bg-blue-50 { background: #dc2626; color: #fff; }
         .tab-btn .count { margin-left: 6px; font-size: 11px; background: #fff; color: #dc2626; border-radius: 999px; padding: 0 6px; }
         .side-group { font-size: 10px; font-weight: 700; color: #64748b; letter-spacing: .08em; text-transform: uppercase; padding: 12px 14px 4px; }
+            body.role-sopir .admin-only, body.role-mandor .admin-only { display: none !important; }
     </style>
 </head>
 <body class="text-slate-800 font-sans antialiased">
+
+<div id="login-screen" class="fixed inset-0 z-[60] bg-slate-900 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl">
+        <p class="text-lg font-bold text-slate-900">Transwisata</p>
+        <p class="text-sm text-slate-500 mb-4">Masuk sebagai peran</p>
+        <span class="label">Peran</span>
+        <select id="login-role" class="field mb-3">
+            <option value="sopir">Sopir</option>
+            <option value="mandor">Mandor</option>
+            <option value="admin">Admin</option>
+        </select>
+        <div id="login-nama-wrap" class="mb-3">
+            <span class="label">Nama Sopir</span>
+            <select id="login-nama" class="field"></select>
+        </div>
+        <span class="label">PIN</span>
+        <input id="login-pin" type="password" inputmode="numeric" class="field mb-2" placeholder="PIN">
+        <p id="login-msg" class="text-sm text-rose-600 min-h-[20px]"></p>
+        <button onclick="portalLogin()" class="btn btn-primary w-full mt-2">Masuk</button>
+    </div>
+</div>
 
 <div id="sidebar-overlay" onclick="closeSidebar()" class="no-print fixed inset-0 bg-black/40 z-20 hidden"></div>
 
@@ -48,9 +70,17 @@
         <div class="px-6 py-5 border-b border-slate-800">
             <p class="text-white font-bold text-lg leading-tight">Transwisata</p>
             <p id="sidebar-company" class="text-xs text-slate-500 truncate">Dashboard &amp; Invoice</p>
+            <button onclick="portalLogout()" class="mt-2 text-xs text-slate-400 hover:text-white">Ganti peran / Keluar</button>
         </div>
 
         <nav class="flex-1 p-3 space-y-1 overflow-y-auto">
+            <p class="side-group">Lapangan</p>
+            <button data-nav="jadwal" class="nav-btn" onclick="showView('jadwal'); closeSidebar()">Jadwal</button>
+            <button data-nav="pengeluaran" class="nav-btn" onclick="showView('pengeluaran'); closeSidebar()">Pengeluaran</button>
+            <button data-nav="rekap" class="nav-btn" onclick="showView('rekap'); closeSidebar()">Rekap</button>
+            <button data-nav="master" class="nav-btn" onclick="showView('master'); closeSidebar()">Master</button>
+
+            <div class="admin-only">
             <p class="side-group">Dashboard</p>
             <button data-nav="dashboard" class="nav-btn active" onclick="showView('dashboard'); closeSidebar()">Ringkasan</button>
             <button data-nav="invoices" class="nav-btn" onclick="showView('invoices'); closeSidebar()">Daftar Invoice</button>
@@ -64,9 +94,10 @@
             <button id="tab-btn-riwayat" onclick="openGenerator('riwayat')" class="tab-btn">
                 Riwayat Generator <span id="history-count-badge" class="count">0</span>
             </button>
+            </div>
         </nav>
 
-        <div class="p-3 space-y-2 border-t border-slate-800">
+        <div class="p-3 space-y-2 border-t border-slate-800 admin-only">
             <button onclick="openGenerator('transaksi'); createNewInvoice(); closeSidebar()" class="w-full btn btn-dark">Invoice Baru</button>
             <button onclick="saveInvoiceToHistory()" class="w-full btn btn-primary">Simpan ke Riwayat</button>
             <div id="export-dropdown-wrapper" class="relative">
@@ -180,6 +211,32 @@
                 <p class="font-semibold text-slate-900">Segera hadir</p>
                 <p class="text-sm text-slate-500 mt-1">Modul ini belum dikerjakan.</p>
             </div>
+        </section>
+
+        <!-- ============ VIEW: JADWAL ============ -->
+        <section id="view-jadwal" class="hidden">
+            <div id="jadwal-form"></div>
+            <div id="jadwal-list"></div>
+        </section>
+
+        <!-- ============ VIEW: PENGELUARAN ============ -->
+        <section id="view-pengeluaran" class="hidden">
+            <div id="pengeluaran-form"></div>
+            <div id="pengeluaran-list"></div>
+        </section>
+
+        <!-- ============ VIEW: REKAP ============ -->
+        <section id="view-rekap" class="hidden">
+            <div class="card mb-4">
+                <span class="label">Bulan</span>
+                <input id="rekap-bulan" type="month" class="field max-w-[240px]">
+            </div>
+            <div id="rekap-out"></div>
+        </section>
+
+        <!-- ============ VIEW: MASTER ============ -->
+        <section id="view-master" class="hidden">
+            <div id="master-body" class="grid grid-cols-1 xl:grid-cols-2 gap-4"></div>
         </section>
 
         <!-- ============ VIEW: GENERATOR ============ -->
@@ -459,23 +516,25 @@
         dashboard: ['Dashboard', 'Ringkasan invoice dan piutang'],
         invoices: ['Daftar Invoice', 'Semua invoice tersimpan'],
         soon: ['Segera Hadir', 'Modul dalam pengembangan'],
-        generator: ['Generator Invoice', 'Buat dan cetak invoice armada & paket tour']
+        generator: ['Generator Invoice', 'Buat dan cetak invoice armada & paket tour'],
+        jadwal: ['Jadwal', 'Jadwal armada dan sopir'],
+        pengeluaran: ['Pengeluaran', 'Biaya perjalanan armada'],
+        rekap: ['Rekap', 'Ringkasan pengeluaran per bulan'],
+        master: ['Master', 'Daftar sopir dan mobil']
     };
     function showView(name) {
-        ['dashboard', 'invoices', 'soon', 'generator'].forEach((v) => {
-            document.getElementById('view-' + v).classList.toggle('hidden', v !== name);
+        Object.keys(VIEW_TITLES).forEach((v) => {
+            const el = document.getElementById('view-' + v);
+            if (el) el.classList.toggle('hidden', v !== name);
         });
         document.querySelectorAll('.nav-btn').forEach((b) => {
             b.classList.toggle('active', b.dataset.nav === name);
         });
-        const isGen = name === 'generator';
-        document.getElementById('mobile-toggle').classList.toggle('hidden', !isGen);
+        document.getElementById('mobile-toggle').classList.toggle('hidden', name !== 'generator');
         document.getElementById('page-title').textContent = VIEW_TITLES[name][0];
         document.getElementById('page-sub').textContent = VIEW_TITLES[name][1];
-        if (isGen) {
-            document.getElementById('tab-btn-transaksi') && 0;
-        }
         if (typeof window.__refreshDashboard === 'function') window.__refreshDashboard();
+        if (typeof window.__onView === 'function') window.__onView(name);
     }
     function openGenerator(tab) {
         showView('generator');
@@ -736,5 +795,6 @@
     /* ---------- Tampilan awal: generator, dashboard tetap ada di menu ---------- */
     showView('dashboard');
 </script>
+<script src="portal.js"></script>
 </body>
 </html>
