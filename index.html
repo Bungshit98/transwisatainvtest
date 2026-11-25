@@ -3,354 +3,410 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Generator Invoice - Transwisata</title>
+    <title>Dashboard Admin - Transwisata</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
-    <link rel="stylesheet" href="app.css">
     <style>
-        body { background: #f1f5f9; }
-        .field { width: 100%; padding: 9px 12px; font-size: 14px; border: 1px solid #cbd5e1; border-radius: 10px; background: #fff; outline: none; }
-        .field:focus { border-color: #dc2626; box-shadow: 0 0 0 3px rgba(220,38,38,.12); }
-        .label { display: block; font-size: 11px; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: .04em; margin-bottom: 4px; }
-        .card { background: #fff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 20px; }
-        .sec-title { font-size: 14px; font-weight: 700; color: #0f172a; margin-bottom: 12px; }
-        .btn { padding: 8px 14px; border-radius: 10px; font-size: 13px; font-weight: 600; border: 1px solid #cbd5e1; background: #fff; color: #334155; }
-        .btn:hover { background: #f8fafc; }
-        .btn-primary { background: #dc2626; border-color: #dc2626; color: #fff; }
-        .btn-primary:hover { background: #b91c1c; }
-        .btn-dark { background: #1e293b; border-color: #1e293b; color: #fff; }
-        .btn-dark:hover { background: #0f172a; }
-        .stat { background: #fff; border: 1px solid #e2e8f0; border-radius: 14px; padding: 12px; }
-        .stat p:first-child { font-size: 11px; font-weight: 600; color: #64748b; text-transform: uppercase; }
-        .stat p:last-child { font-size: 14px; font-weight: 700; color: #0f172a; margin-top: 4px; }
-        .hist-filter-btn { padding: 6px 12px; border-radius: 999px; font-size: 12px; font-weight: 600; background: #f1f5f9; color: #475569; }
-        .invoice-paper { box-shadow: 0 10px 30px rgba(15,23,42,.12); }
-
-        /* Sidebar: tab-btn diberi gaya gelap, kelas aktif tetap dari app.js */
-        .tab-btn { display: block; width: 100%; text-align: left; padding: 10px 14px; border-radius: 10px; font-size: 14px; color: #cbd5e1; }
-        .tab-btn:hover { background: #1e293b; color: #fff; }
-        .tab-btn.bg-blue-50 { background: #dc2626; color: #fff; }
-        .tab-btn .count { margin-left: 6px; font-size: 11px; background: #fff; color: #dc2626; border-radius: 999px; padding: 0 6px; }
+        .nav-btn { color: #cbd5e1; }
+        .nav-btn:hover { background: #1e293b; color: #fff; }
+        .nav-btn.active { background: #dc2626; color: #fff; font-weight: 600; }
+        .card-stat { background: #fff; border-radius: 16px; padding: 20px; border: 1px solid #e2e8f0; }
+        .btn-filter { background: #f1f5f9; color: #475569; }
+        .btn-filter.active { background: #1e293b; color: #fff; }
     </style>
 </head>
-<body class="text-slate-800 font-sans antialiased">
-
-<div id="sidebar-overlay" onclick="closeSidebar()" class="no-print fixed inset-0 bg-black/40 z-20 hidden"></div>
-
+<body class="bg-slate-100 text-slate-800 font-sans">
 <div class="min-h-screen flex">
 
-    <!-- Sidebar (sama dengan dashboard) -->
-    <aside id="sidebar" class="no-print w-64 bg-slate-900 flex flex-col fixed inset-y-0 left-0 z-30 -translate-x-full lg:translate-x-0 transition-transform duration-200">
+    <!-- Sidebar -->
+    <aside class="w-64 bg-slate-900 flex flex-col fixed inset-y-0 left-0">
         <div class="px-6 py-5 border-b border-slate-800">
             <p class="text-white font-bold text-lg leading-tight">Transwisata</p>
-            <p class="text-xs text-slate-500">Generator Invoice</p>
+            <p id="sidebar-company" class="text-xs text-slate-500 truncate">Dashboard Admin</p>
         </div>
-
-        <nav class="flex-1 p-3 space-y-1 overflow-y-auto">
-            <button id="tab-btn-transaksi" onclick=\"switchTab('transaksi'); closeSidebar()\" class="tab-btn bg-blue-50 text-blue-700 font-semibold">Transaksi</button>
-            <button id="tab-btn-perusahaan" onclick=\"switchTab('perusahaan'); closeSidebar()\" class="tab-btn font-medium">Perusahaan</button>
-            <button id="tab-btn-pembayaran" onclick=\"switchTab('pembayaran'); closeSidebar()\" class="tab-btn font-medium">Pembayaran</button>
-            <button id="tab-btn-riwayat" onclick=\"switchTab('riwayat'); closeSidebar()\" class="tab-btn font-medium">
-                Riwayat <span id="history-count-badge" class="count">0</span>
-            </button>
+        <nav class="flex-1 p-3 space-y-1 text-sm">
+            <button data-nav="dashboard" class="nav-btn active w-full text-left px-3 py-2 rounded-lg">Dashboard</button>
+            <button data-nav="invoices" class="nav-btn w-full text-left px-3 py-2 rounded-lg">Riwayat Invoice</button>
+            <button data-nav="soon" class="nav-btn w-full text-left px-3 py-2 rounded-lg">Armada</button>
+            <button data-nav="soon" class="nav-btn w-full text-left px-3 py-2 rounded-lg">Supir</button>
+            <button data-nav="soon" class="nav-btn w-full text-left px-3 py-2 rounded-lg">Keuangan</button>
         </nav>
-
-        <div class="p-3 space-y-2 border-t border-slate-800">
-            <button onclick="createNewInvoice()" class="w-full btn btn-dark">Invoice Baru</button>
-            <button onclick="saveInvoiceToHistory()" class="w-full btn btn-primary">Simpan ke Riwayat</button>
-            <div id="export-dropdown-wrapper" class="relative">
-                <button onclick="toggleExportMenu()" class="w-full btn">Export</button>
-                <div id="export-menu" class="hidden absolute bottom-full left-0 right-0 mb-2 bg-white text-slate-800 rounded-xl shadow-xl border border-slate-200 overflow-hidden text-sm">
-                    <button onclick="printInvoice(); toggleExportMenu(false);" class="block w-full text-left px-4 py-2.5 hover:bg-slate-50">Print / Save PDF</button>
-                    <button onclick="exportToPDF(); toggleExportMenu(false);" class="block w-full text-left px-4 py-2.5 hover:bg-slate-50">Download PDF</button>
-                    <button onclick="exportToJPG(); toggleExportMenu(false);" class="block w-full text-left px-4 py-2.5 hover:bg-slate-50">Download JPG</button>
-                </div>
-            </div>
-            <a href="admin/index.html" class="block text-center text-xs text-slate-400 hover:text-white pt-1">Ke Dashboard &rarr;</a>
+        <div class="p-3">
+            <a href="../index.html" class="block text-center bg-red-600 hover:bg-red-700 text-white font-semibold py-2.5 rounded-lg text-sm">+ Invoice Baru</a>
         </div>
     </aside>
 
     <!-- Konten -->
-    <main class="flex-1 lg:ml-64 min-w-0 w-full p-4 sm:p-6 lg:p-8">
-        <header class="no-print flex items-center justify-between gap-3 mb-6">
-            <div class="flex items-center gap-3 min-w-0">
-            <button onclick="openSidebar()" class="lg:hidden btn shrink-0 text-lg leading-none px-3">&#9776;</button>
-            <div class="min-w-0">
-                <h1 class="text-2xl font-bold text-slate-900">Generator Invoice</h1>
-                <p class="text-sm text-slate-500">Buat dan cetak invoice armada &amp; paket tour</p>
+    <main class="flex-1 ml-64 p-8">
+        <header class="flex items-end justify-between mb-8">
+            <div>
+                <h1 id="page-title" class="text-2xl font-bold text-slate-900">Dashboard</h1>
+                <p class="text-sm text-slate-500">Ringkasan invoice dan piutang</p>
             </div>
-            </div>
-            <button id="mobile-toggle" onclick="toggleMobileView()" class="btn lg:hidden"><span id="mobile-toggle-text">Preview</span></button>
+            <p id="today" class="text-sm text-slate-500"></p>
         </header>
 
-        <div class="grid grid-cols-1 xl:grid-cols-12 gap-6">
+        <!-- View: Dashboard -->
+        <section id="view-dashboard">
+            <div class="grid grid-cols-4 gap-5 mb-8">
+                <div class="card-stat">
+                    <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Total Invoice</p>
+                    <p id="stat-count" class="text-2xl font-bold text-slate-900 mt-2">0</p>
+                </div>
+                <div class="card-stat">
+                    <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Total Masuk</p>
+                    <p id="stat-paid" class="text-2xl font-bold text-emerald-700 mt-2">Rp 0</p>
+                </div>
+                <div class="card-stat">
+                    <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Total Piutang</p>
+                    <p id="stat-unpaid" class="text-2xl font-bold text-rose-600 mt-2">Rp 0</p>
+                </div>
+                <div class="card-stat">
+                    <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Belum Lunas</p>
+                    <p id="stat-open" class="text-2xl font-bold text-slate-900 mt-2">0</p>
+                </div>
+            </div>
 
-            <!-- EDITOR -->
-            <section id="editor-panel" class="no-print xl:col-span-5 space-y-5">
-
-                <!-- Tab: Transaksi -->
-                <div id="tab-content-transaksi" class="card space-y-5">
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <div class="sm:col-span-2">
-                            <span class="label">No. Invoice</span>
-                            <div class="flex flex-col sm:flex-row gap-2">
-                                <input id="in-inv-number" class="field font-mono" oninput="updatePreview()">
-                                <button onclick="generateAutoInvoiceNumber(true)" class="btn whitespace-nowrap">Generate Otomatis</button>
-                            </div>
-                        </div>
-                        <div>
-                            <span class="label">Tanggal</span>
-                            <input id="in-inv-date" type="date" class="field" onchange="updatePreview()">
-                        </div>
-                    </div>
-
-                    <div>
-                        <p class="sec-title">Ditagihkan kepada</p>
-                        <div class="space-y-3">
-                            <div><span class="label">Nama Customer</span><input id="in-cust-name" class="field" oninput="updatePreview()"></div>
-                            <div><span class="label">No. Telepon</span><input id="in-cust-phone" class="field" oninput="updatePreview()"></div>
-                            <div><span class="label">Alamat</span><textarea id="in-cust-address" rows="2" class="field" oninput="updatePreview()"></textarea></div>
-                        </div>
-                    </div>
-
-                    <div>
-                        <div class="flex items-center justify-between mb-3">
-                            <p class="sec-title mb-0">Armada &amp; Paket</p>
-                            <button onclick="addItemRow()" class="btn">+ Tambah Baris</button>
-                        </div>
-                        <div id="items-editor-list" class="space-y-3"></div>
-                    </div>
+            <div class="grid grid-cols-3 gap-6">
+                <div class="col-span-2 bg-white rounded-2xl border border-slate-200 overflow-hidden">
+                    <div class="px-5 py-4 border-b border-slate-200 font-semibold text-slate-900">Invoice Terbaru</div>
+                    <table class="w-full text-sm">
+                        <thead class="bg-slate-50 text-xs uppercase text-slate-500">
+                            <tr>
+                                <th class="px-4 py-2.5 text-left">No. Invoice</th>
+                                <th class="px-4 py-2.5 text-left">Customer</th>
+                                <th class="px-4 py-2.5 text-left">Tanggal</th>
+                                <th class="px-4 py-2.5 text-right">Total</th>
+                                <th class="px-4 py-2.5 text-right">Sisa</th>
+                                <th class="px-4 py-2.5 text-left">Status</th>
+                                <th class="px-4 py-2.5 text-right">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="recent-body"></tbody>
+                    </table>
                 </div>
 
-                <!-- Tab: Perusahaan -->
-                <div id="tab-content-perusahaan" class="card space-y-4 hidden">
-                    <p class="sec-title">Profil Perusahaan</p>
-                    <div><span class="label">Nama Perusahaan</span><input id="in-comp-name" class="field" oninput="updatePreview()"></div>
-                    <div><span class="label">Tagline</span><input id="in-comp-tagline" class="field" oninput="updatePreview()"></div>
-                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                        <div><span class="label">Label Alamat 1</span><input id="in-addr1-label" class="field" oninput="updatePreview()"></div>
-                        <div class="sm:col-span-2"><span class="label">Alamat 1</span><input id="in-comp-addr1" class="field" oninput="updatePreview()"></div>
-                        <div><span class="label">Label Alamat 2</span><input id="in-addr2-label" class="field" oninput="updatePreview()"></div>
-                        <div class="sm:col-span-2"><span class="label">Alamat 2</span><input id="in-comp-addr2" class="field" oninput="updatePreview()"></div>
-                    </div>
-                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                        <div><span class="label">WhatsApp</span><input id="in-comp-wa" class="field" oninput="updatePreview()"></div>
-                        <div><span class="label">Instagram</span><input id="in-comp-ig" class="field" oninput="updatePreview()"></div>
-                        <div><span class="label">Email</span><input id="in-comp-email" class="field" oninput="updatePreview()"></div>
-                    </div>
-                    <div>
-                        <span class="label">Logo</span>
-                        <div class="flex flex-wrap items-center gap-3">
-                            <input type="file" accept="image/*" onchange="handleLogoUpload(event)" class="text-sm">
-                            <button id="btn-remove-logo" onclick="removeLogo()" class="btn hidden">Hapus Logo</button>
-                        </div>
-                    </div>
-                    <button onclick="saveCompanyProfile()" class="btn btn-dark w-full">Simpan Profil</button>
+                <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+                    <div class="px-5 py-4 border-b border-slate-200 font-semibold text-slate-900">Piutang Belum Lunas</div>
+                    <ul id="piutang-list" class="divide-y divide-slate-100"></ul>
                 </div>
+            </div>
+        </section>
 
-                <!-- Tab: Pembayaran -->
-                <div id="tab-content-pembayaran" class="card space-y-5 hidden">
-                    <div>
-                        <p class="sec-title">Status Pembayaran</p>
-                        <div class="grid grid-cols-3 gap-2">
-                            <button id="status-btn-UNPAID" onclick="setPaymentStatus('UNPAID')" class="status-btn btn">Belum Bayar</button>
-                            <button id="status-btn-DP" onclick="setPaymentStatus('DP')" class="status-btn btn">DP</button>
-                            <button id="status-btn-LUNAS" onclick="setPaymentStatus('LUNAS')" class="status-btn btn">Lunas</button>
-                        </div>
-                        <div id="dp-input-wrapper" class="hidden mt-3 space-y-2">
-                            <span class="label">Nominal DP (Rp)</span>
-                            <div class="flex flex-col sm:flex-row gap-2">
-                                <input id="in-dp-amount" type="number" min="0" class="field" oninput="onDpInput()">
-                                <button onclick="setFullPayment()" class="btn whitespace-nowrap">Samakan dengan Grand Total</button>
-                            </div>
-                        </div>
-                    </div>
+        <!-- View: Riwayat Invoice -->
+        <section id="view-invoices" class="hidden">
+            <div class="flex flex-wrap items-center gap-3 mb-5">
+                <input id="search-input" type="text" placeholder="Cari no. invoice, customer, atau item..." class="flex-1 min-w-[220px] px-4 py-2.5 text-sm bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+                <select id="status-filter" class="px-4 py-2.5 text-sm bg-white border border-slate-300 rounded-lg outline-none">
+                    <option value="ALL">Semua Status</option>
+                    <option value="UNPAID">Belum Bayar</option>
+                    <option value="DP">DP</option>
+                    <option value="LUNAS">Lunas</option>
+                </select>
+                <button id="btn-export" class="px-4 py-2.5 text-sm font-semibold bg-white border border-slate-300 rounded-lg hover:bg-slate-50">Backup JSON</button>
+                <button id="btn-import" class="px-4 py-2.5 text-sm font-semibold bg-white border border-slate-300 rounded-lg hover:bg-slate-50">Import JSON</button>
+                <input id="import-file" type="file" accept="application/json,.json" class="hidden">
+            </div>
+            <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+                <table class="w-full text-sm">
+                    <thead class="bg-slate-50 text-xs uppercase text-slate-500">
+                        <tr>
+                            <th class="px-4 py-2.5 text-left">No. Invoice</th>
+                            <th class="px-4 py-2.5 text-left">Customer</th>
+                            <th class="px-4 py-2.5 text-left">Tanggal</th>
+                            <th class="px-4 py-2.5 text-right">Total</th>
+                            <th class="px-4 py-2.5 text-right">Sisa</th>
+                            <th class="px-4 py-2.5 text-left">Status</th>
+                            <th class="px-4 py-2.5 text-right">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="all-body"></tbody>
+                </table>
+            </div>
+        </section>
 
-                    <div>
-                        <span class="label">Rekening Bank</span>
-                        <textarea id="in-bank-info" rows="3" class="field" oninput="updatePreview()"></textarea>
-                    </div>
-
-                    <div>
-                        <p class="sec-title">Stempel</p>
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                            <button id="stamp-type-btn-TEXT" onclick="setLunasStampType('TEXT')" class="btn">Teks Status Saja</button>
-                            <button id="stamp-type-btn-IMAGE" onclick="setLunasStampType('IMAGE')" class="btn">Stempel PNG Kustom</button>
-                        </div>
-                        <div id="custom-stamp-upload-wrap" class="hidden mt-3 space-y-2">
-                            <input type="file" accept="image/png" onchange="handleStampUpload(event)" class="text-sm">
-                            <div id="stamp-thumb-preview-wrap" class="hidden items-center gap-3">
-                                <img id="stamp-thumb-preview" class="h-14 object-contain border rounded-lg p-1">
-                                <button id="btn-remove-stamp" onclick="removeCustomStamp()" class="btn">Hapus Stempel</button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div>
-                        <p class="sec-title">Tanda Tangan (Gambar)</p>
-                        <input type="file" accept="image/png" onchange="handleSignatureUpload(event)" class="text-sm">
-                        <button id="btn-remove-sign" onclick="removeSignature()" class="btn mt-2 hidden">Hapus Tanda Tangan</button>
-                    </div>
-
-                    <div>
-                        <p class="sec-title">Nama &amp; Kota</p>
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            <div><span class="label">Kota</span><input id="in-sign-city" class="field" oninput="updatePreview()"></div>
-                            <div><span class="label">Nama Penandatangan</span><input id="in-sign-name" class="field" oninput="updatePreview()"></div>
-                        </div>
-                    </div>
-
-                    <div>
-                        <span class="label">Catatan / Syarat &amp; Ketentuan</span>
-                        <textarea id="in-notes" rows="4" class="field" oninput="updatePreview()"></textarea>
-                    </div>
-                </div>
-
-                <!-- Tab: Riwayat -->
-                <div id="tab-content-riwayat" class="card space-y-4 hidden">
-                    <div class="grid grid-cols-3 gap-2">
-                        <div class="stat"><p>Invoice</p><p id="pos-stat-count">0</p></div>
-                        <div class="stat"><p>Masuk</p><p id="pos-stat-paid" class="text-emerald-700">Rp 0</p></div>
-                        <div class="stat"><p>Piutang</p><p id="pos-stat-unpaid" class="text-rose-600">Rp 0</p></div>
-                    </div>
-                    <input id="pos-search-input" type="text" oninput="renderHistoryList()" placeholder="Cari no. invoice, customer, atau item..." class="field">
-                    <div class="flex flex-wrap gap-2">
-                        <button id="hist-filter-ALL" onclick="setHistoryFilter('ALL')" class="hist-filter-btn bg-slate-800 text-white">Semua</button>
-                        <button id="hist-filter-UNPAID" onclick="setHistoryFilter('UNPAID')" class="hist-filter-btn">Belum Bayar</button>
-                        <button id="hist-filter-DP" onclick="setHistoryFilter('DP')" class="hist-filter-btn">DP</button>
-                        <button id="hist-filter-LUNAS" onclick="setHistoryFilter('LUNAS')" class="hist-filter-btn">Lunas</button>
-                    </div>
-                    <div id="pos-history-list" class="space-y-2 max-h-[420px] overflow-y-auto"></div>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-3 border-t border-slate-200">
-                        <button onclick="exportAllHistoryJson()" class="btn">Backup Riwayat (.JSON)</button>
-                        <label class="btn text-center cursor-pointer">
-                            Restore (.JSON)
-                            <input type="file" accept="application/json,.json" onchange="importAllHistoryJson(event)" class="hidden">
-                        </label>
-                        <button onclick="downloadJsonBackup()" class="btn">Simpan File .JSON</button>
-                        <label class="btn text-center cursor-pointer">
-                            Muat File .JSON
-                            <input type="file" accept="application/json,.json" onchange="uploadJsonBackup(event)" class="hidden">
-                        </label>
-                    </div>
-                </div>
-            </section>
-
-            <!-- PREVIEW -->
-            <section id="preview-panel" class="xl:col-span-7 hidden xl:block">
-                <div class="xl:sticky xl:top-6">
-                    <div id="invoice-paper-target" class="invoice-paper bg-white rounded-2xl p-8 sm:p-10 max-w-[210mm] mx-auto text-[13px] text-slate-800">
-
-                        <!-- Kop -->
-                        <div class="flex items-start justify-between gap-4 pb-5 border-b-2 border-red-600">
-                            <div class="flex items-start gap-4 min-w-0">
-                                <div class="w-16 h-16 shrink-0 rounded-xl bg-slate-100 flex items-center justify-center overflow-hidden">
-                                    <img id="prev-logo-img" class="w-full h-full object-contain hidden" alt="Logo">
-                                    <span id="prev-logo-placeholder" class="text-[10px] text-slate-400">LOGO</span>
-                                </div>
-                                <div class="min-w-0">
-                                    <p id="prev-comp-name" class="text-lg font-bold text-slate-900 leading-tight"></p>
-                                    <p id="prev-comp-tagline" class="text-xs text-slate-500"></p>
-                                    <div class="mt-2 space-y-0.5 text-[11px] text-slate-600">
-                                        <p id="prev-addr1-wrap"><span id="prev-addr1-label" class="font-semibold"></span> <span id="prev-comp-addr1"></span></p>
-                                        <p id="prev-addr2-wrap"><span id="prev-addr2-label" class="font-semibold"></span> <span id="prev-comp-addr2"></span></p>
-                                    </div>
-                                    <div id="prev-contact-row" class="mt-1 flex flex-wrap gap-x-3 text-[11px] text-slate-600">
-                                        <span id="prev-wa-wrap">WA: <span id="prev-comp-wa"></span></span>
-                                        <span id="prev-ig-wrap">IG: <span id="prev-comp-ig"></span></span>
-                                        <span id="prev-email-wrap"><span id="prev-comp-email"></span></span>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="text-right shrink-0">
-                                <p class="text-xl font-extrabold tracking-wide text-red-600">INVOICE</p>
-                                <div class="mt-2 flex justify-end"><p id="prev-status-badge"></p></div>
-                                
-                            </div>
-                        </div>
-
-                        <!-- Info -->
-                        <div class="grid grid-cols-2 gap-6 py-5">
-                            <div>
-                                <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Bill to</p>
-                                <p id="prev-cust-name" class="font-semibold text-slate-900"></p>
-                                <p id="prev-cust-phone" class="text-slate-600"></p>
-                                <p id="prev-cust-address" class="text-slate-600 whitespace-pre-line"></p>
-                            </div>
-                            <div class="text-right space-y-1">
-                                <p><span class="text-slate-400">No.</span> <span id="prev-inv-number" class="font-mono font-semibold"></span></p>
-                                <p><span class="text-slate-400">Tanggal</span> <span id="prev-inv-date"></span></p>
-                            </div>
-                        </div>
-
-                        <!-- Items -->
-                        <table class="w-full text-[12px]">
-                            <thead>
-                                <tr class="bg-slate-900 text-white text-[11px] uppercase">
-                                    <th class="py-2 px-2 text-center w-12">Qty</th>
-                                    <th class="py-2 px-2 text-left">Deskripsi Armada / Paket</th>
-                                    <th class="py-2 px-2 text-center w-14">Hari</th>
-                                    <th class="py-2 px-2 text-right">Harga / Hari</th>
-                                    <th class="py-2 px-2 text-right">Total</th>
-                                </tr>
-                            </thead>
-                            <tbody id="prev-items-tbody" class="divide-y divide-slate-100"></tbody>
-                        </table>
-
-                        <!-- Ringkasan -->
-                        <div class="mt-5 flex justify-between gap-6">
-                            <div class="flex-1 min-w-0">
-                                <div id="prev-bank-wrap" class="mb-4">
-                                    <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Pembayaran</p>
-                                    <p id="prev-bank-info" class="text-[12px] text-slate-700 whitespace-pre-line"></p>
-                                </div>
-                                <div>
-                                    <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Catatan &amp; Syarat</p>
-                                    <p id="prev-notes" class="text-[11px] text-slate-600 whitespace-pre-line"></p>
-                                </div>
-                            </div>
-                            <div class="w-64 shrink-0 space-y-1.5 text-[12px]">
-                                <div class="flex justify-between"><span class="text-slate-500">Subtotal</span><span id="prev-subtotal"></span></div>
-                                <div class="flex justify-between font-bold text-slate-900 border-t pt-2"><span>Grand Total</span><span id="prev-grand-total"></span></div>
-                                <div class="flex justify-between text-slate-600"><span>DP / Telah Dibayar</span><span id="prev-dp-amount"></span></div>
-                                <div class="flex justify-between font-bold text-red-600 bg-red-50 rounded-lg px-2 py-1.5"><span>Sisa Tagihan</span><span id="prev-balance-due"></span></div>
-                            </div>
-                        </div>
-
-                        <!-- Tanda tangan -->
-                        <div class="mt-10 flex justify-end">
-                            <div class="text-center w-56">
-                                <p class="text-slate-600"><span id="prev-sign-city"></span>, <span id="prev-sign-date"></span></p>
-                                <p id="prev-sign-comp" class="text-slate-600 text-[11px]"></p>
-                                <div class="relative h-28 flex items-center justify-center">
-                                    <span id="prev-lunas-stamp" class="absolute text-2xl font-black tracking-widest border-4 rounded-lg px-3 py-1 -rotate-12"></span>
-                                    <img id="prev-lunas-stamp-img" class="absolute max-h-24 object-contain hidden" alt="Stempel">
-                                    <img id="prev-sign-img" class="absolute z-10 max-h-14 object-contain hidden translate-x-8 translate-y-2" alt="Tanda tangan">
-                                </div>
-                                <p id="prev-sign-name" class="font-semibold border-t border-slate-400 pt-1"></p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-        </div>
+        <!-- View: Segera hadir -->
+        <section id="view-soon" class="hidden">
+            <div class="bg-white rounded-2xl border border-dashed border-slate-300 p-12 text-center">
+                <p class="font-semibold text-slate-900">Segera hadir</p>
+                <p class="text-sm text-slate-500 mt-1">Modul ini belum dikerjakan. Fokus saat ini: dashboard dan riwayat invoice.</p>
+            </div>
+        </section>
     </main>
 </div>
 
-<div id="toast-container" class="fixed bottom-6 right-6 space-y-2 z-50 no-print"></div>
-
 <script>
-    function openSidebar() {
-        document.getElementById('sidebar').classList.remove('-translate-x-full');
-        document.getElementById('sidebar-overlay').classList.remove('hidden');
+(function () {
+    'use strict';
+
+    // Kunci localStorage yang sama dengan generator invoice (index.html)
+    const KEY_HISTORY = 'tw_history';
+    const KEY_ACTIVE = 'tw_active';
+    const KEY_COMPANY = 'tw_company';
+
+    const STATUS = {
+        UNPAID: { label: 'Belum Bayar', cls: 'bg-rose-100 text-rose-700' },
+        DP: { label: 'DP', cls: 'bg-amber-100 text-amber-700' },
+        LUNAS: { label: 'Lunas', cls: 'bg-emerald-100 text-emerald-700' }
+    };
+    const TITLES = { dashboard: 'Dashboard', invoices: 'Riwayat Invoice', soon: 'Segera Hadir' };
+
+    const $ = (id) => document.getElementById(id);
+    const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    }[c]));
+    const fmt = (n) => 'Rp ' + Math.round(Number(n) || 0).toLocaleString('id-ID');
+    const fmtDate = (iso) => {
+        if (!iso) return '-';
+        const d = new Date(iso + 'T00:00:00');
+        return isNaN(d) ? '-' : d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+    };
+    const todayISO = () => {
+        const d = new Date();
+        d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+        return d.toISOString().slice(0, 10);
+    };
+
+    // Perhitungan sama dengan generator invoice
+    function totals(inv) {
+        const grand = (inv.items || []).reduce((s, i) =>
+            s + (Number(i.qty) || 0) * (Number(i.days) || 0) * (Number(i.price) || 0), 0);
+        let dp = inv.status === 'LUNAS' ? grand : inv.status === 'UNPAID' ? 0 : (Number(inv.dp) || 0);
+        dp = Math.min(Math.max(dp, 0), grand);
+        return { grand, dp, balance: grand - dp };
     }
-    function closeSidebar() {
-        if (window.innerWidth >= 1024) return;
-        document.getElementById('sidebar').classList.add('-translate-x-full');
-        document.getElementById('sidebar-overlay').classList.add('hidden');
+
+    function loadHistory() {
+        try { return JSON.parse(localStorage.getItem(KEY_HISTORY)) || []; }
+        catch (e) { return []; }
     }
+    function saveHistory(list) {
+        localStorage.setItem(KEY_HISTORY, JSON.stringify(list));
+    }
+    function toast(msg) {
+        const t = document.createElement('div');
+        t.className = 'fixed bottom-6 right-6 bg-slate-900 text-white text-sm px-4 py-2.5 rounded-lg shadow-lg transition-opacity duration-300 z-50';
+        t.textContent = msg;
+        document.body.appendChild(t);
+        setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.remove(), 300); }, 2600);
+    }
+
+    function rowHtml(h) {
+        const t = totals(h);
+        const n = esc(h.number);
+        const opts = Object.keys(STATUS).map((s) =>
+            `<option value="${s}" ${h.status === s ? 'selected' : ''}>${STATUS[s].label}</option>`).join('');
+        return `<tr class="border-t border-slate-100 hover:bg-slate-50">
+            <td class="px-4 py-3 font-mono text-xs">${n}</td>
+            <td class="px-4 py-3">${esc((h.customer && h.customer.name) || '-')}</td>
+            <td class="px-4 py-3 text-xs text-slate-500">${fmtDate(h.date)}</td>
+            <td class="px-4 py-3 text-right font-medium">${fmt(t.grand)}</td>
+            <td class="px-4 py-3 text-right font-medium ${t.balance > 0 ? 'text-rose-600' : 'text-emerald-700'}">${fmt(t.balance)}</td>
+            <td class="px-4 py-3">
+                <select data-status-change="${n}" class="text-xs border border-slate-300 rounded-md px-2 py-1 bg-white">${opts}</select>
+            </td>
+            <td class="px-4 py-3 text-right whitespace-nowrap">
+                <button data-open="${n}" class="text-xs text-blue-700 hover:underline font-medium mr-3">Buka</button>
+                <button data-del="${n}" class="text-xs text-rose-600 hover:underline font-medium">Hapus</button>
+            </td>
+        </tr>`;
+    }
+
+    function renderStats(list) {
+        let paid = 0, unpaid = 0, open = 0;
+        list.forEach((h) => {
+            const t = totals(h);
+            paid += t.dp;
+            unpaid += t.balance;
+            if (t.balance > 0) open++;
+        });
+        $('stat-count').textContent = list.length;
+        $('stat-paid').textContent = fmt(paid);
+        $('stat-unpaid').textContent = fmt(unpaid);
+        $('stat-open').textContent = open;
+    }
+
+    function renderDashboard(list) {
+        renderStats(list);
+        $('recent-body').innerHTML = list.slice(0, 8).map(rowHtml).join('')
+            || '<tr><td colspan="7" class="px-4 py-8 text-center text-slate-400">Belum ada invoice tersimpan.</td></tr>';
+
+        const open = list.filter((h) => totals(h).balance > 0).slice(0, 8);
+        $('piutang-list').innerHTML = open.map((h) => {
+            const t = totals(h);
+            return `<li class="px-5 py-3 flex items-center justify-between gap-3">
+                <div class="min-w-0">
+                    <p class="text-sm font-medium text-slate-900 truncate">${esc((h.customer && h.customer.name) || '-')}</p>
+                    <p class="text-[11px] font-mono text-slate-400 truncate">${esc(h.number)}</p>
+                </div>
+                <p class="text-sm font-semibold text-rose-600 whitespace-nowrap">${fmt(t.balance)}</p>
+            </li>`;
+        }).join('') || '<li class="px-5 py-8 text-center text-sm text-slate-400">Tidak ada piutang. Semua lunas.</li>';
+    }
+
+    function renderInvoices() {
+        const q = $('search-input').value.toLowerCase().trim();
+        const status = $('status-filter').value;
+        const list = loadHistory().filter((h) => {
+            if (status !== 'ALL' && h.status !== status) return false;
+            if (!q) return true;
+            const hay = [h.number, h.customer && h.customer.name, ...(h.items || []).map((i) => i.desc)]
+                .join(' ').toLowerCase();
+            return hay.includes(q);
+        });
+        $('all-body').innerHTML = list.map(rowHtml).join('')
+            || '<tr><td colspan="7" class="px-4 py-8 text-center text-slate-400">Tidak ada data yang cocok.</td></tr>';
+    }
+
+    function refresh() {
+        const list = loadHistory();
+        renderDashboard(list);
+        renderInvoices();
+    }
+
+    /* ---------- Aksi ---------- */
+
+    // Buka invoice di generator: taruh di tw_active lalu pindah ke index.html
+    function openInvoice(number) {
+        const h = loadHistory().find((x) => x.number === number);
+        if (!h) return;
+        if (localStorage.getItem(KEY_ACTIVE) && !confirm('Buka invoice ini di generator? Form yang sedang terbuka di generator akan diganti.')) return;
+        const { savedAt, ...rest } = h;
+        localStorage.setItem(KEY_ACTIVE, JSON.stringify(rest));
+        location.href = '../index.html';
+    }
+
+    function changeStatus(number, status, selectEl) {
+        const list = loadHistory();
+        const h = list.find((x) => x.number === number);
+        if (!h) return;
+        const grand = totals(h).grand;
+
+        if (status === 'DP') {
+            const input = prompt('Nominal DP (Rp) untuk ' + number + ':', h.dp || 0);
+            if (input === null || isNaN(Number(input))) {
+                selectEl.value = h.status;
+                return;
+            }
+            h.dp = Math.min(Math.max(Number(input), 0), grand);
+        } else if (status === 'UNPAID') {
+            h.dp = 0;
+        } else if (status === 'LUNAS') {
+            h.dp = grand;
+        }
+        h.status = status;
+        saveHistory(list);
+
+        // Kalau invoice yang sama sedang aktif di generator, sinkronkan juga
+        try {
+            const active = JSON.parse(localStorage.getItem(KEY_ACTIVE));
+            if (active && active.number === number) {
+                active.status = h.status;
+                active.dp = h.dp;
+                localStorage.setItem(KEY_ACTIVE, JSON.stringify(active));
+            }
+        } catch (e) { /* abaikan */ }
+
+        refresh();
+        toast('Status ' + number + ' diubah ke ' + STATUS[status].label);
+    }
+
+    function deleteInvoice(number) {
+        if (!confirm('Hapus invoice ' + number + ' dari riwayat?')) return;
+        saveHistory(loadHistory().filter((h) => h.number !== number));
+        refresh();
+        toast('Invoice dihapus');
+    }
+
+    function exportHistory() {
+        const data = {
+            app: 'transwisata-invoice',
+            version: 1,
+            type: 'history',
+            history: loadHistory()
+        };
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'riwayat-invoice-' + todayISO() + '.json';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+        toast('Backup riwayat tersimpan');
+    }
+
+    async function importHistory(e) {
+        const file = e.target.files && e.target.files[0];
+        e.target.value = '';
+        if (!file) return;
+        try {
+            const data = JSON.parse(await file.text());
+            if (!Array.isArray(data.history)) throw new Error('format');
+            const map = new Map();
+            loadHistory().forEach((h) => map.set(h.number, h));
+            data.history.forEach((h) => { if (h && h.number) map.set(h.number, h); });
+            const merged = [...map.values()]
+                .sort((a, b) => String(b.savedAt || '').localeCompare(String(a.savedAt || '')));
+            saveHistory(merged);
+            refresh();
+            toast(data.history.length + ' invoice berhasil diimpor');
+        } catch (err) {
+            toast('File riwayat tidak valid');
+        }
+    }
+
+    /* ---------- Navigasi & init ---------- */
+    function showView(name) {
+        ['dashboard', 'invoices', 'soon'].forEach((v) => {
+            $('view-' + v).classList.toggle('hidden', v !== name);
+        });
+        document.querySelectorAll('.nav-btn').forEach((b) => {
+            b.classList.toggle('active', b.dataset.nav === name);
+        });
+        $('page-title').textContent = TITLES[name];
+        refresh();
+    }
+
+    function init() {
+        try {
+            const company = JSON.parse(localStorage.getItem(KEY_COMPANY));
+            if (company && company.company && company.company.name) {
+                $('sidebar-company').textContent = company.company.name;
+            }
+        } catch (e) { /* abaikan */ }
+
+        $('today').textContent = new Date().toLocaleDateString('id-ID', {
+            weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
+        });
+
+        document.querySelectorAll('.nav-btn').forEach((b) => {
+            b.addEventListener('click', () => showView(b.dataset.nav));
+        });
+        $('search-input').addEventListener('input', renderInvoices);
+        $('status-filter').addEventListener('change', renderInvoices);
+        $('btn-export').addEventListener('click', exportHistory);
+        $('btn-import').addEventListener('click', () => $('import-file').click());
+        $('import-file').addEventListener('change', importHistory);
+
+        // Delegasi event untuk tombol & dropdown di tabel
+        document.addEventListener('click', (e) => {
+            const open = e.target.closest('[data-open]');
+            if (open) return openInvoice(open.dataset.open);
+            const del = e.target.closest('[data-del]');
+            if (del) return deleteInvoice(del.dataset.del);
+        });
+        document.addEventListener('change', (e) => {
+            const sel = e.target.closest('[data-status-change]');
+            if (sel) changeStatus(sel.dataset.statusChange, sel.value, sel);
+        });
+
+        window.addEventListener('focus', refresh);
+        refresh();
+    }
+
+    init();
+})();
 </script>
-<script src="app.js"></script>
 </body>
 </html>
